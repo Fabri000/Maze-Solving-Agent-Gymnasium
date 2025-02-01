@@ -11,28 +11,29 @@ from tqdm import tqdm
 
 
 
-start_pos,maze = gen_maze(35,35)
-win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][0]
-maze[win_pos[0]][win_pos[1]] = 2
+'''start_pos,maze = gen_maze(35,35)
+win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]'''
 
-'''
-start_pos = (1,1)
+#non lo risolve
+start_pos = (2,1) # rows , columns
 maze = [
-    [0,0,0,0,0,0,0],
-    [0,1,0,1,1,1,0],
-    [0,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0],
-    [0,1,1,1,0,2,0],
-    [0,0,0,0,0,0,0]
-]'''
-#win_pos = (5,5)
+    [0,0,0,0,0,0,0,0,0,0,0],
+    [0,1,0,1,1,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0,1,0,1,0],
+    [0,1,0,2,0,1,1,1,1,1,0],
+    [0,1,0,0,0,0,0,0,0,1,0],
+    [0,1,1,1,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0,0,0,0]
+]
+win_pos = (5,3)
 
 env = MazeEnv(maze,start_pos,win_pos)
 
 # hyperparameters
 learning_rate = 0.01
-n_episodes = 1000
+n_episodes = 100
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1
@@ -51,8 +52,6 @@ env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 # reset the environment to get the first observation
 done = False
 observation, info = env.reset()
-
-# observation = (16, 9, False)
 
 for episode in tqdm(range(n_episodes)):
     obs, info = env.reset()

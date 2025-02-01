@@ -60,8 +60,7 @@ class DQNAgent():
 
         n_actions = env.action_space.n
         observation, _ = env.reset()
-        print(observation)
-        n_observations = len(np.concatenate([observation["agent"], observation["target"]]))
+        n_observations = len(np.concatenate([observation[k] for k in observation]))
 
         self.device = device
 
@@ -156,7 +155,7 @@ class DQNAgent():
         for _ in range(num_episodes):
             # Initialize the environment and get its state
             state, _ = self.env.reset()
-            state = torch.tensor(np.concatenate([state["agent"], state["target"]], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
+            state = torch.tensor(np.concatenate([state[k] for k in state], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 action = self.select_action(state)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
@@ -166,7 +165,7 @@ class DQNAgent():
                 if terminated:
                     next_state = None
                 else:
-                    next_state = torch.tensor(np.concatenate([observation["agent"], observation["target"]], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
+                    next_state = torch.tensor(np.concatenate([observation[k] for k in observation], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
 
                 # Store the transition in memory
                 self.memory.push(state, action, next_state, reward)

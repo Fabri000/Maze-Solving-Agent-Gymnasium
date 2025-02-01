@@ -5,20 +5,22 @@ from agents.dqn_agent import DQNAgent
 
 import torch_directml 
 
-#start_pos, maze = gen_maze(7,7)
-#win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][0]
-
-start_pos = (1,1)
+'''start_pos, maze = gen_maze(31,31)
+win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][0]
+'''
+start_pos = (2,1) # rows , columns
 maze = [
-    [0,0,0,0,0,0,0],
-    [0,1,0,1,1,1,0],
-    [0,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0],
-    [0,1,1,1,0,2,0],
-    [0,0,0,0,0,0,0]
+    [0,0,0,0,0,0,0,0,0,0,0],
+    [0,1,0,1,1,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0,1,0,1,0],
+    [0,1,0,2,0,1,1,1,1,1,0],
+    [0,1,0,0,0,0,0,0,0,1,0],
+    [0,1,1,1,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0,0,0,0]
 ]
-win_pos = (5,5)
+win_pos = (5,3)
 
 device = torch_directml.device()
 

@@ -68,7 +68,6 @@ class QAgent:
         temporal_difference = (
             reward + self.discount_factor * future_q_value - self.q_values[str(obs)][action]
         )
-
         self.q_values[str(obs)][action] = (
             self.q_values[str(obs)][action] + self.lr * temporal_difference
         )
