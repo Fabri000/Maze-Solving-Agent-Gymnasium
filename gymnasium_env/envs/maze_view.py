@@ -9,7 +9,7 @@ class MazeView():
         'W': (0,1)
     }
 
-    TILE_SIZE = 32
+    TILE_SIZE = 16
     CELL_COLORS = [(0,0,0),(255,255,255),(3, 255, 28)] #colors of wall, floor, goal
     AGENT_COLOR = (17, 0, 255)
 

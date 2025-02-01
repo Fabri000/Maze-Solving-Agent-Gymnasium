@@ -11,11 +11,24 @@ from tqdm import tqdm
 
 
 
-start_pos,lab = gen_maze(15,15)
-win_pos = [(r, c) for r in range(len(lab)) for c in range(len(lab[0])) if lab[r][c] == 2][0]
-lab[win_pos[0]][win_pos[1]] = 2
+start_pos,maze = gen_maze(35,35)
+win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][0]
+maze[win_pos[0]][win_pos[1]] = 2
 
-env = MazeEnv(lab,start_pos,win_pos)
+'''
+start_pos = (1,1)
+maze = [
+    [0,0,0,0,0,0,0],
+    [0,1,0,1,1,1,0],
+    [0,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0],
+    [0,1,0,1,0,1,0],
+    [0,1,1,1,0,2,0],
+    [0,0,0,0,0,0,0]
+]'''
+#win_pos = (5,5)
+
+env = MazeEnv(maze,start_pos,win_pos)
 
 # hyperparameters
 learning_rate = 0.01
