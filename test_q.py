@@ -15,7 +15,7 @@ from tqdm import tqdm
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]'''
 
 #non lo risolve
-start_pos = (2,1) # rows , columns
+start_pos = (1,9) # rows , columns
 maze = [
     [0,0,0,0,0,0,0,0,0,0,0],
     [0,1,0,1,1,1,0,1,0,1,0],
@@ -32,7 +32,7 @@ win_pos = (5,3)
 env = MazeEnv(maze,start_pos,win_pos)
 
 # hyperparameters
-learning_rate = 0.01
+learning_rate = 0.1
 n_episodes = 100
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time

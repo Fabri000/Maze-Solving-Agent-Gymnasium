@@ -74,8 +74,8 @@ class MazeView():
 
     def move_agent(self, dir):
         new_pos = self._agent_position + np.array(dir)
-
-        if 0 < new_pos[0]< len(self.maze_map)-1 and  0 < new_pos[1] < len(self.maze_map)-1:
+        if 0 < new_pos[0]< len(self.maze_map)-1 and  0 < new_pos[1] < len(self.maze_map[0])-1:
+            print(self.maze_map[new_pos[0]][new_pos[1]])
             if self.maze_map[new_pos[0]][new_pos[1]] != 0:
                 # update the drawing
                 self.__draw_agent(transparency=0)
