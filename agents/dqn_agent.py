@@ -115,10 +115,11 @@ class DQNAgent():
 
         # Compute a mask of non-final states and concatenate the batch elements
         # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                            batch.next_state)), device=self.device, dtype=torch.bool)
-        non_final_next_states = torch.cat([s for s in batch.next_state
-                                                    if s is not None])
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,batch.next_state)), device=self.device, dtype=torch.bool)
+        if [s for s in batch.next_state if s is not None]:
+            non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        else:
+            non_final_next_states = None
         state_batch = torch.cat(batch.state)
         action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
@@ -135,7 +136,8 @@ class DQNAgent():
         # state value or 0 in case the state was final.
         next_state_values = torch.zeros(self.batch, device=self.device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
+            if non_final_next_states is not None:
+                next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch
 

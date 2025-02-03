@@ -6,7 +6,7 @@ def heuristic(a, b):
     """
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-def astar_limited_partial(maze, start, goal=None, max_depth=6):
+def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
     """
     Esegue una ricerca A* limitata in profondità per trovare un percorso
     da start a goal nel labirinto, senza superare max_depth passi.
@@ -32,19 +32,7 @@ def astar_limited_partial(maze, start, goal=None, max_depth=6):
               come lista di tuple (riga, colonna).
     """
     rows, cols = len(maze), len(maze[0])
-    
-    # Se non viene fornito l'obiettivo, cerchiamo la cella con valore 2
-    if goal is None:
-        for r in range(rows):
-            for c in range(cols):
-                if maze[r][c] == 2:
-                    goal = (r, c)
-                    break
-            if goal is not None:
-                break
-        if goal is None:
-            print("Non è stato trovato alcun obiettivo (cella con valore 2) nel labirinto.")
-            return None
+
 
     # Inizializziamo la coda a priorità (open_set) e le strutture di supporto
     open_set = []
@@ -59,7 +47,7 @@ def astar_limited_partial(maze, start, goal=None, max_depth=6):
     best_g = g_score[start]
     
     while open_set:
-        current_f, current = heapq.heappop(open_set)
+        _, current = heapq.heappop(open_set)
         
         # Aggiorna best_candidate se abbiamo raggiunto un nodo con g maggiore
         if g_score[current] > best_g:
