@@ -4,6 +4,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim import lr_scheduler
 import torch.nn.functional as F
 
 from itertools import count
@@ -17,15 +18,17 @@ class DQN(nn.Module):
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer2 = nn.Linear(128, 256)
+        self.layer3 = nn.Linear(256, 128)
+        self.layer4 = nn.Linear(128, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = F.relu(self.layer3(x))
+        return self.layer4(x)
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
@@ -69,6 +72,7 @@ class DQNAgent():
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=learning_rate, amsgrad=True)
+        self.scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=200,eta_min=1e-5)
         self.memory = ReplayMemory(10000)
 
         self.steps_done = 0
@@ -76,7 +80,7 @@ class DQNAgent():
     
     def select_action(self,state):
         sample = random.random()
-        eps_threshold = self.eps_end+ (self.eps_start - self.eps_end) * \
+        eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
             math.exp(-1. * self.steps_done / self.eps_decay)
         self.steps_done += 1
         if sample > eps_threshold:
@@ -142,7 +146,7 @@ class DQNAgent():
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch
 
         # Compute Huber loss
-        criterion = nn.SmoothL1Loss()
+        criterion = nn.MSELoss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
         # Optimize the model
@@ -188,8 +192,8 @@ class DQNAgent():
 
                 if done:
                     self.durations.append(t + 1)
-                    self.plot_durations()
                     break
+            self.scheduler.step()
 
         print('Complete')
         self.plot_durations(show_result=True)

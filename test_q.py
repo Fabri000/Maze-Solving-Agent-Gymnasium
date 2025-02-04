@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 
 
-start_pos,maze = gen_maze(45,45)
+start_pos,maze = gen_maze(31,31)
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
 
 '''start_pos = (1,1) # rows , columns

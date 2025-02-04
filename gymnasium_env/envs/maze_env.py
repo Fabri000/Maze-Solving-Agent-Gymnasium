@@ -38,13 +38,17 @@ class MazeEnv(gym.Env):
             {
                 "agent": gym.spaces.Box(0,len(maze_map)*len(maze_map[0]),shape=(2,),dtype=int),
                 "target": gym.spaces.Box(0,len(maze_map)*len(maze_map[0]),shape=(2,),dtype=int),
-                "best next": gym.spaces.Box(0,len(maze_map)*len(maze_map[0]),shape=(2,),dtype=int)
+                "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int)
             }
         )
         self.action_space = gym.spaces.Discrete(4)
 
-        self.step_count = len(maze_map)*len(maze_map[0])
-        
+        self.min_reward = - len(maze_map)*len(maze_map[0])
+        self.max_steps = len(maze_map)*len(maze_map[0])
+        self.visited_cell= []
+        self.cum_rew = 0
+        self.step_count=0
+        self.consecutive_invalid_moves = 0
         self.reset()
 
     def _find_best_next_cell(self,agent_pos):
@@ -63,7 +67,7 @@ class MazeEnv(gym.Env):
         return best_path[0]
 
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location,"best next":self._find_best_next_cell(self._agent_location)}
+        return {"agent": self._agent_location, "target": self._target_location,"best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
     
     def _get_info(self):
         return {
@@ -77,50 +81,62 @@ class MazeEnv(gym.Env):
         self._agent_location = np.array(self._start_pos,dtype=np.int32)
         self.maze_view._reset_agent()
 
-        self.step_count = 2*len(self.maze_map)*len(self.maze_map[0])
-
         observation = self._get_obs()
         info = self._get_info()
+        self.cum_rew = 0
+        self.step_count=0
+        self.consecutive_invalid_moves = 0
+        self.visited_cell= []
 
         return observation, info
     
     def step(self, action):
-        # Map the action (element of {0,1,2,3}) to the direction we walk in
-        reward =  0
+        reward = 0
         terminated = False
         done = False
 
-        self.step_count -= 1
-
         prev_pos = self._agent_location
         moved = self.maze_view.move_agent(MazeEnv.ACTIONS[action])
-        
+
         if moved:
-            self._agent_location = np.array(self.maze_view._agent_position,dtype=np.int32)
+            self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
+            current_cell = tuple(self._agent_location)
 
-            if np.array_equal(self._agent_location,self._target_location):
+            if current_cell not in self.visited_cell:
+                if np.array_equal(self._agent_location, self._target_location):
+                    print("Win")
+                    reward = 1
+                    terminated = True
+                else:
+                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
+                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
 
-                print("Win")
-                reward = 10
-                terminated = True
+                    reward = (old_dist - new_dist) * 0.3 -0.05
+                    
             else:
-                new_dist = len(astar_limited_partial(self.maze_map,tuple(self._agent_location),tuple(self._target_location)))
-                old_dist = len(astar_limited_partial(self.maze_map,tuple(prev_pos),tuple(self._target_location)))
-                reward = (old_dist - new_dist) * 0.2 - 0.05
+                reward = -0.3 * (self.visited_cell.count(current_cell) + 1)
+
+            self.visited_cell.append(current_cell)
         else:
-            reward = -0.3
-        
-        if self.step_count == 0:
-            reward = -0.5
+            self.consecutive_invalid_moves += 1
+            reward = -0.1 * self.consecutive_invalid_moves # usare termine variabile quante volte sto fermo di fila
+
+        self.cum_rew += reward
+        self.step_count += 1
+
+        # Condizione di terminazione
+        if self.cum_rew <= self.min_reward or self.step_count >= self.max_steps:
             done = True
 
         observation = self._get_obs()
         info = self._get_info()
 
         if done or terminated:
+            print("Cumulative reward:", self.cum_rew)
             self.reset()
 
         return observation, reward, terminated, done, info
+
     
     def render(self,mode="human",close=False):
         if close:
