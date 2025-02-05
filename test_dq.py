@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium_env.envs.maze_env import MazeEnv
 from gymnasium_env.envs.maze_generator import gen_maze
-from agents.q_agent import QAgent
+from agents.dq_agent import DQAgent
 
 from tqdm import tqdm
 
@@ -24,23 +24,19 @@ win_pos = (5,3)'''
 
 env = MazeEnv(maze,start_pos,win_pos)
 
-# hyperparameters
 learning_rate = 0.01
 n_episodes = 100
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1
 
-agent = QAgent(
+agent = DQAgent(
     env=env,
     learning_rate=learning_rate,
     initial_epsilon=start_epsilon,
     epsilon_decay=epsilon_decay,
     final_epsilon=final_epsilon,
 )
-
-env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
-
 
 # reset the environment to get the first observation
 done = False
@@ -53,7 +49,8 @@ for episode in tqdm(range(n_episodes)):
 
     # play one episode
     while not done:
-        action = agent.get_action(env, obs)
+        action = agent.get_action(obs)
+
         next_obs, reward, terminated, truncated, info = env.step(action)
         cumulative += reward
 

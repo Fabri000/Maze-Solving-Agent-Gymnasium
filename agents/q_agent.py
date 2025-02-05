@@ -2,14 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from matplotlib.patches import Patch
-from tqdm import tqdm
-
-import gymnasium as gym
-
 
 class QAgent:
     def __init__(
@@ -31,7 +24,8 @@ class QAgent:
             final_epsilon: The final epsilon value
             discount_factor: The discount factor for computing the Q-value
         """
-        self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
+        self.env = env
+        self.q_values = defaultdict(lambda: np.zeros(self.env.action_space.n))
 
         self.lr = learning_rate
         self.discount_factor = discount_factor
