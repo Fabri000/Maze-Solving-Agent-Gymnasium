@@ -1,11 +1,11 @@
 import gymnasium as gym
 from gymnasium_env.envs.maze_env import MazeEnv
-from gymnasium_env.envs.maze_generator import gen_maze
+from lib.maze_generator import gen_maze
 from agents.q_agent import QAgent
 
 from tqdm import tqdm
 
-start_pos,maze = gen_maze(31,31)
+start_pos,maze = gen_maze(51,51)
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
 
 '''start_pos = (1,1) # rows , columns
