@@ -1,6 +1,7 @@
 import random
 
-def gen_maze(rows: int, columns: int, algorithm:str="dfs") -> list:
+def gen_maze(shape:tuple[int,int], algorithm:str="dfs") -> list:
+    rows,columns = shape
     maze = [[0 for _ in range(rows)] for _ in range(columns)]
     
     start_point= (random.randrange(1, rows - 1, 2), random.randrange(1, columns - 1, 2))
@@ -15,7 +16,7 @@ def gen_maze(rows: int, columns: int, algorithm:str="dfs") -> list:
     win_pos = find_random_position(maze,1,start_point)
     maze[win_pos[0]][win_pos[1]] = 2
 
-    return start_point,maze
+    return start_point , maze
 
 def random_prim_visit(maze,width, height,start_point):
     
@@ -79,7 +80,7 @@ def find_random_position(maze, val, start_point):
         return None
     
     chosed = random.choice(positions)
-    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) // 2:
+    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) - max(len(maze),len(maze[0]))/2:
         chosed = random.choice(positions)
 
     return chosed

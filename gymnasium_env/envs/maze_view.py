@@ -52,7 +52,37 @@ class MazeView():
             self.screen.blit(self.maze_layer,(0,0))
             pygame.display.flip()
             pygame.display.update()
+    
+    def update_maze(self,maze_map, start_position, goal_position, maze_size):
+        self.maze_map = maze_map
+        self.start_position = start_position
+        self._agent_position = self.start_position
+        self.goal_position = goal_position
+        self.maze_size = maze_size
 
+        self.window_size = tuple([x*MazeView.TILE_SIZE for x in reversed(self.maze_size)])
+        
+        if self.enable_render:
+            pygame.init()
+            pygame.display.set_caption("Maze game")
+            pygame.display.init()
+
+            # to show the right and bottom border
+            self.screen = pygame.display.set_mode(self.window_size)
+            self.__screen_size = tuple(map(sum, zip(self.window_size, (-1, -1))))
+            self.background = pygame.Surface(self.__screen_size).convert()
+
+            self.maze_layer = pygame.Surface(self.__screen_size).convert_alpha()
+            # show the maze
+            self.__draw_maze()
+
+            # show the robot
+            self.__draw_agent()
+
+            self.screen.blit(self.background,(0,0))
+            self.screen.blit(self.maze_layer,(0,0))
+            pygame.display.flip()
+            pygame.display.update()
     
     def __draw_maze(self):
         if not self.enable_render:

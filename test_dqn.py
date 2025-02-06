@@ -5,7 +5,7 @@ from agents.dqn_agent import DQNAgent
 
 import torch_directml 
 
-start_pos, maze = gen_maze(21,21)
+start_pos, maze = gen_maze((21,21))
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][0]
 
 """start_pos = (1,1) # rows , columns

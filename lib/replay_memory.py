@@ -41,7 +41,6 @@ class PrioritizedReplayMemory(object):
         indexs = np.random.choice(len(self.memory),batch_size,p=p)
         samples = [self.memory[index] for index in indexs]
 
-
         total = len(self.memory)
         weights = (total * p[indexs]) ** (-beta)
         weights /= weights.max()
