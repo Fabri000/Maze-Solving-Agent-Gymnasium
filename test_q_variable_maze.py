@@ -1,5 +1,6 @@
 import gymnasium as gym
 from gymnasium_env.envs.variable_maze_env import VariableMazeEnv
+from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.maze_generator import gen_maze
 from agents.q_agent import QAgent
 
@@ -40,29 +41,8 @@ agent = QAgent(
 )
 
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
+trainer = OffPolicyTrainer(env,agent)
 
+trainer.train(300)
 
-# reset the environment to get the first observation
-done = False
-observation, info = env.reset()
-
-for episode in tqdm(range(n_episodes)):
-    obs, info = env.reset()
-    done = False
-    cumulative = 0
-
-    # play one episode
-    while not done:
-        action = agent.get_action(env, obs)
-        next_obs, reward, terminated, truncated, info = env.step(action)
-        cumulative += reward
-
-        # update the agent
-        agent.update(obs, action, reward, terminated, next_obs)
-
-        # update if the environment is done and the current obs
-        done = terminated or truncated
-        obs = next_obs
-
-    print(f'episode {episode} cumulative reward {cumulative}')
-    agent.decay_epsilon()
+trainer.test(50)

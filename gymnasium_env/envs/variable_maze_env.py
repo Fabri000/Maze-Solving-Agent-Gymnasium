@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import random
 
 from gymnasium_env.envs.maze_view import MazeView
 from lib.maze_generator import gen_maze
@@ -50,10 +51,15 @@ class VariableMazeEnv(gym.Env):
         self.consecutive_invalid_moves = 0
         self.reset()
 
-    def update_maze(self):
-        self.current_shape = tuple(a+b for a,b in zip(self.current_shape,(2,2)))
-        self._start_pos , self.maze_map= gen_maze(self.current_shape)
-        self._goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+    def update_maze(self,training=True):
+        if training:
+            self.current_shape = tuple(a+b for a,b in zip(self.current_shape,(2,2)))
+            self._start_pos , self.maze_map= gen_maze(self.current_shape)
+            self._goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+        else:
+            self.current_shape = random.choice([(x,x) for x in range(5,self.max_shape[0],2)])
+            self._start_pos ,self.maze_map= gen_maze(self.current_shape)
+            self._goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
 
         self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.current_shape)
 
@@ -83,7 +89,7 @@ class VariableMazeEnv(gym.Env):
         }
     
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
-        # Choose the agent's location uniformly at random
+
         self._agent_location = np.array(self._start_pos,dtype=np.int32)
         self.maze_view._reset_agent()
 
@@ -98,7 +104,7 @@ class VariableMazeEnv(gym.Env):
     def step(self, action):
         reward = 0
         terminated = False
-        done = False
+        truncated = False
 
         prev_pos = self._agent_location
         moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
@@ -116,7 +122,6 @@ class VariableMazeEnv(gym.Env):
                 else:
                     new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-
                     reward = (old_dist - new_dist) * 0.3 -0.05
                     
             else:
@@ -130,19 +135,17 @@ class VariableMazeEnv(gym.Env):
         self.cum_rew += reward
         self.step_count += 1
 
-        # Condizione di terminazione
         if self.step_count >= self.max_steps:
-            done = True
+            truncated = True
 
         observation = self._get_obs()
         info = self._get_info()
 
-        if done or terminated:
+        if truncated or terminated:
             self.reset()
 
-        return observation, reward, terminated, done, info
+        return observation, reward, truncated,terminated, info
 
-    
     def render(self,mode="human",close=False):
         if close:
             self.maze_view.quit_game()

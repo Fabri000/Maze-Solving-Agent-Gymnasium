@@ -1,3 +1,6 @@
+from gymnasium_env.envs.maze_env import MazeEnv
+from gymnasium_env.envs.variable_maze_env import VariableMazeEnv
+
 from tqdm import tqdm
 
 class OffPolicyTrainer():
@@ -28,13 +31,17 @@ class OffPolicyTrainer():
                 done = terminated or truncated
                 obs = next_obs
 
-            print(f'episode {episode} cumulative reward {cumulative}')
+            print(f'episode {episode} size {self.env.env.current_shape} cumulative reward {cumulative}')
             self.agent.decay_epsilon()
     
     def test(self, num_mazes:int):
         win = 0
+
         for _ in range(num_mazes):
-            self.env.env.update_maze()
+            if isinstance(self.env.env, MazeEnv):
+                self.env.env.update_maze()
+            elif isinstance(self.env.env, VariableMazeEnv):
+                self.env.env.update_maze(False)
 
             obs, _ = self.env.reset()
             done = False
@@ -51,5 +58,5 @@ class OffPolicyTrainer():
                 obs = next_obs
         
             print(f'total reward {total_reward}')
-        print(f'winrate {win / num_mazes}')
         
+        print(f'winrate {(win / num_mazes)*100} %')

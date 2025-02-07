@@ -4,7 +4,6 @@ from lib.maze_generator import gen_maze
 from agents.q_agent import QAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 
-
 start_pos,maze = gen_maze((21,21))
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
 

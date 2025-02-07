@@ -109,7 +109,6 @@ class MazeEnv(gym.Env):
                 else:
                     new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-
                     reward = (old_dist - new_dist) * 0.3 -0.05
                     
             else:
@@ -118,12 +117,11 @@ class MazeEnv(gym.Env):
             self.visited_cell.append(current_cell)
         else:
             self.consecutive_invalid_moves += 1
-            reward = -0.1 * self.consecutive_invalid_moves # usare termine variabile quante volte sto fermo di fila
+            reward = -0.1 * self.consecutive_invalid_moves
 
         self.cum_rew += reward
         self.step_count += 1
 
-        # Condizione di terminazione
         if self.step_count >= self.max_steps:
             truncated = True
 
