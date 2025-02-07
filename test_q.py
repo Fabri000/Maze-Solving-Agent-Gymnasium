@@ -43,4 +43,4 @@ env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 trainer = OffPolicyTrainer(env,agent)
 trainer.train(n_episodes)
 
-trainer.test(35)
+trainer.test(50)

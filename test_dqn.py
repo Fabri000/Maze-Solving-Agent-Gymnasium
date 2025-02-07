@@ -1,4 +1,3 @@
-import gymnasium as gym
 from gymnasium_env.envs.maze_env import MazeEnv
 from lib.maze_generator import gen_maze
 from agents.dqn_agent import DQNAgent

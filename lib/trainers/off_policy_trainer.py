@@ -31,7 +31,7 @@ class OffPolicyTrainer():
                 done = terminated or truncated
                 obs = next_obs
 
-            print(f'episode {episode} size {self.env.env.current_shape} cumulative reward {cumulative}')
+            print(f'episode {episode} shape ({len(self.env.env.maze_map)},{len(self.env.env.maze_map[0])}) cumulative reward {cumulative}')
             self.agent.decay_epsilon()
     
     def test(self, num_mazes:int):
@@ -57,6 +57,6 @@ class OffPolicyTrainer():
                     done = truncated
                 obs = next_obs
         
-            print(f'total reward {total_reward}')
+            print(f'total reward {total_reward} shape {self.env.env.current_shape}')
         
         print(f'winrate {(win / num_mazes)*100} %')

@@ -26,13 +26,14 @@ class VariableMazeEnv(gym.Env):
 
         self.current_shape = (7,7) #inizialized to a fixed small size
         self._start_pos , self.maze_map,= gen_maze(self.current_shape)
-        self._goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+        goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+
+        self._agent_location = np.array(self._start_pos, dtype=np.int32)
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
         if self.render_mode == "human":
-            self.maze_view = MazeView(self.maze_map,self._start_pos,self._goal_pos,self.current_shape)
+            self.maze_view = MazeView(self.maze_map,self._start_pos,self._target_location,self.current_shape)
         
-        self._agent_location = np.array(self._start_pos, dtype=np.int32)
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
 
         self.observation_space = spaces.Dict(
             {
@@ -53,26 +54,28 @@ class VariableMazeEnv(gym.Env):
 
     def update_maze(self,training=True):
         if training:
-            self.current_shape = tuple(a+b for a,b in zip(self.current_shape,(2,2)))
-            self._start_pos , self.maze_map= gen_maze(self.current_shape)
-            self._goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+            if self.current_shape < self.max_shape:
+                self.current_shape = tuple(a+b for a,b in zip(self.current_shape,(2,2)))
         else:
             self.current_shape = random.choice([(x,x) for x in range(5,self.max_shape[0],2)])
-            self._start_pos ,self.maze_map= gen_maze(self.current_shape)
-            self._goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
-
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.current_shape)
+            
+        self.max_steps = self.current_shape[0] * self.current_shape[1]
+        self._start_pos , self.maze_map= gen_maze(self.current_shape)
+        goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+        self._target_location = np.array(goal_pos, dtype=np.int32)
+        self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.current_shape)
+        self.reset()
 
     def _find_best_next_cell(self,agent_pos):
         paths = []
         for dir in VariableMazeEnv.ACTIONS:
             next_pos = tuple(agent_pos + VariableMazeEnv.ACTIONS[dir])
             if 0<next_pos[0]<len(self.maze_map) and 0<next_pos[1]<len(self.maze_map[0]) and self.maze_map[next_pos[0]][next_pos[1]]:
-                paths.append(astar_limited_partial(self.maze_map,next_pos,self._goal_pos,max_depth=min(len(self.maze_map),len(self.maze_map[1]))))
+                paths.append(astar_limited_partial(self.maze_map,next_pos,tuple(self._target_location.tolist()),max_depth=min(len(self.maze_map),len(self.maze_map[1]))))
         best_dist = len(self.maze_map)*len(self.maze_map[0])
         best_path = None
         for path in paths:
-            dist_to_goal = len(astar_limited_partial(self.maze_map,path[-1],self._goal_pos,max_depth=len(self.maze_map)*len(self.maze_map[1])))
+            dist_to_goal = len(astar_limited_partial(self.maze_map,path[-1],tuple(self._target_location.tolist()),max_depth=len(self.maze_map)*len(self.maze_map[1])))
             if dist_to_goal < best_dist:
                 best_dist = dist_to_goal
                 best_path = path
@@ -97,6 +100,7 @@ class VariableMazeEnv(gym.Env):
         info = self._get_info()
         self.cum_rew = 0
         self.step_count=0
+        self.consecutive_invalid_moves = 0
         self.visited_cell= []
 
         return observation, info
@@ -110,8 +114,8 @@ class VariableMazeEnv(gym.Env):
         moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
 
         if moved:
-            self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
-            current_cell = tuple(self._agent_location)
+            self._agent_location = np.array(self.maze_view._agent_position, dtype=int)
+            current_cell = tuple(self._agent_location.tolist())
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
@@ -120,8 +124,8 @@ class VariableMazeEnv(gym.Env):
                     reward = 1
                     terminated = True
                 else:
-                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
-                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
+                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location.tolist())))
+                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location.tolist())))
                     reward = (old_dist - new_dist) * 0.3 -0.05
                     
             else:

@@ -23,11 +23,11 @@ maze = [
 ]
 win_pos = (5,3)'''
 
-env = VariableMazeEnv(max_shape=(25,25))
+env = VariableMazeEnv(max_shape=(31,31))
 
 # hyperparameters
 learning_rate = 0.01
-n_episodes = 1000
+n_episodes = 250
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1
@@ -43,6 +43,6 @@ agent = QAgent(
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 trainer = OffPolicyTrainer(env,agent)
 
-trainer.train(300)
+trainer.train(n_episodes)
 
 trainer.test(50)

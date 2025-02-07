@@ -1,4 +1,3 @@
-import gymnasium as gym
 from gymnasium_env.envs.maze_env import MazeEnv
 from lib.maze_generator import gen_maze
 from agents.dq_agent import DQAgent
@@ -24,7 +23,7 @@ win_pos = (5,3)'''
 env = MazeEnv(maze,start_pos,win_pos)
 
 learning_rate = 0.01
-n_episodes = 100
+n_episodes = 1000
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1

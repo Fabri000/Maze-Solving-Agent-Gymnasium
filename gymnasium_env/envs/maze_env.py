@@ -66,6 +66,17 @@ class MazeEnv(gym.Env):
                 best_path = path
         return best_path[0]
 
+    def _get_collitions(self,agent_pos):
+        free_cell = []
+        for dir in MazeEnv.ACTIONS:
+            next_pos = tuple(agent_pos + MazeEnv.ACTIONS[dir])
+            if 0<next_pos[0]<self.maze_shape[0] and 0<next_pos[1]<self.maze_shape[1]:
+                if self.maze_map[next_pos[0]][next_pos[1]]:
+                    free_cell.append(0)
+                else:
+                    free_cell.append(1)
+        return free_cell
+
     def _get_obs(self):
         return {"agent": self._agent_location, "target": self._target_location,"best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
     
@@ -77,7 +88,7 @@ class MazeEnv(gym.Env):
         }
     
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
-        # Choose the agent's location uniformly at random
+        
         self._agent_location = np.array(self._start_pos,dtype=np.int32)
         self.maze_view._reset_agent()
 
