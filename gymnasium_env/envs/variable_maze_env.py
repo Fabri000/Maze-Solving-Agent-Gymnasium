@@ -119,7 +119,6 @@ class VariableMazeEnv(gym.Env):
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
-                    print("Win ", self.current_shape)
                     self.update_maze()
                     reward = 1
                     terminated = True
@@ -148,7 +147,7 @@ class VariableMazeEnv(gym.Env):
         if truncated or terminated:
             self.reset()
 
-        return observation, reward, truncated,terminated, info
+        return observation, reward, truncated, terminated, info
 
     def render(self,mode="human",close=False):
         if close:

@@ -22,11 +22,13 @@ class DQN(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim,hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim,n_actions)
+            nn.Linear(hidden_dim,n_actions),
+            nn.Softmax()
         )
     
     def forward(self,x):
-        return self.model(x)
+        y = self.model(x)
+        return y
     
 class DQNAgent():
     def __init__(self,
@@ -64,13 +66,13 @@ class DQNAgent():
         self.memory = ReplayMemory(memory_size)
 
         self.optimizer = optim.AdamW(self.source_net.parameters(),learning_rate)
-        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=100,eta_min=1e-5)
+        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=30,eta_min=1e-5,verbose=True)
         self.steps_done = 0
     
     def memorize(self,*args):
         self.memory.push(*args)
     
-    def select_action(self, state):
+    def get_action(self, state):
         sample = random.random()
         epsilon_threshold = self.final_epsilon + (self.starting_epsilon - self.final_epsilon) * math.exp(-1. * self.steps_done / self.epsilon_decay)
         self.steps_done += 1
@@ -104,7 +106,7 @@ class DQNAgent():
         expected_state_action_values = (next_state_values * self.discount_factor) + reward_batch
 
         # Compute loss between our state action and expectations
-        loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+        loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
         self.optimizer.zero_grad()
         loss.backward()

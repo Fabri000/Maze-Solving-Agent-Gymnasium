@@ -36,13 +36,13 @@ class QAgent:
 
         self.training_error = []
 
-    def get_action(self, env, obs: tuple[int, int, bool]) -> int:
+    def get_action(self, obs: tuple[int, int, bool]) -> int:
         """
         Returns the best action with probability (1 - epsilon)
         otherwise a random action with probability epsilon to ensure exploration.
         """
         if np.random.random() < self.epsilon:
-            return env.action_space.sample()
+            return self.env.action_space.sample()
 
         else:
             return int(np.argmax(self.q_values[str(obs)]))

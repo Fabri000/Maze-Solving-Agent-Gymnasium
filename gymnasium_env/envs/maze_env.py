@@ -56,7 +56,7 @@ class MazeEnv(gym.Env):
         for dir in MazeEnv.ACTIONS:
             next_pos = tuple(agent_pos + MazeEnv.ACTIONS[dir])
             if 0<next_pos[0]<self.maze_shape[0] and 0<next_pos[1]<self.maze_shape[1] and self.maze_map[next_pos[0]][next_pos[1]]:
-                paths.append(astar_limited_partial(self.maze_map,next_pos,self._goal_pos,max_depth=min(len(self.maze_map),len(self.maze_map[1]))))
+                paths.append(astar_limited_partial(self.maze_map,next_pos,self._goal_pos,max_depth=min(self.maze_shape[0],self.maze_shape[1])))
         best_dist = self.maze_shape[0]*self.maze_shape[1]
         best_path = None
         for path in paths:
@@ -115,20 +115,19 @@ class MazeEnv(gym.Env):
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
-                    reward = 1
+                    reward = 10
                     terminated = True
                 else:
                     new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-                    reward = (old_dist - new_dist) * 0.3 -0.05
-                    
+                    reward = (old_dist - new_dist) * 1.5
             else:
-                reward = -0.3 * (self.visited_cell.count(current_cell) + 1)
+                reward = -0.1
 
             self.visited_cell.append(current_cell)
         else:
             self.consecutive_invalid_moves += 1
-            reward = -0.1 * self.consecutive_invalid_moves
+            reward = max(-1, -0.1 * self.consecutive_invalid_moves)
 
         self.cum_rew += reward
         self.step_count += 1
