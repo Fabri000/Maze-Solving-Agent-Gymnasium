@@ -1,5 +1,5 @@
 import pygame
-from gymnasium_env.envs.maze_view import MazeView
+from lib.maze_view import MazeView
 import numpy as np
 
 maze = [[0, 0, 0, 0, 0, 0, 0], [0, 1, 1, 1, 1, 1, 0], [0, 1, 0, 1, 0, 0, 0], [0, 1, 0, 1, 1, 1, 0], [0, 0, 0, 1, 0, 0, 0], [0, 1, 1, 1, 2, 1, 0], [0, 0, 0, 0, 0, 0, 0]]

@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 import random
 
-from gymnasium_env.envs.maze_view import MazeView
+from lib.maze_view import MazeView
 from lib.maze_generator import gen_maze
 from lib.a_star import astar_limited_partial
 
@@ -114,30 +114,29 @@ class VariableMazeEnv(gym.Env):
         moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
 
         if moved:
-            self._agent_location = np.array(self.maze_view._agent_position, dtype=int)
-            current_cell = tuple(self._agent_location.tolist())
+            self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
+            current_cell = tuple(self._agent_location)
+            self.consecutive_invalid_moves = 0
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
                     self.update_maze()
-                    reward = 1
+                    reward = 10
                     terminated = True
                 else:
-                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location.tolist())))
-                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location.tolist())))
-                    reward = (old_dist - new_dist) * 0.3 -0.05
-                    
+                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
+                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
+                    reward = (old_dist - new_dist) * 1.5
             else:
-                reward = -0.3 * (self.visited_cell.count(current_cell) + 1)
+                reward = -0.1 * (self.visited_cell.count(current_cell) + 1)
 
             self.visited_cell.append(current_cell)
         else:
             self.consecutive_invalid_moves += 1
-            reward = -0.1 * self.consecutive_invalid_moves
+            reward = max(0.5, -0.1 * self.consecutive_invalid_moves)
 
         self.cum_rew += reward
         self.step_count += 1
-
         if self.step_count >= self.max_steps:
             truncated = True
 
@@ -154,3 +153,6 @@ class VariableMazeEnv(gym.Env):
             self.maze_view.quit_game()
 
         return self.maze_view.update(mode)
+
+    def get_current_shape(self):
+        return self.current_shape

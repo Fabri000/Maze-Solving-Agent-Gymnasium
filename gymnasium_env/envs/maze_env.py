@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from gymnasium_env.envs.maze_view import MazeView
+from lib.maze_view import MazeView
 from lib.a_star import astar_limited_partial
 from lib.maze_generator import gen_maze
 
@@ -112,6 +112,7 @@ class MazeEnv(gym.Env):
         if moved:
             self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
             current_cell = tuple(self._agent_location)
+            self.consecutive_invalid_moves = 0
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
@@ -122,12 +123,13 @@ class MazeEnv(gym.Env):
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
                     reward = (old_dist - new_dist) * 1.5
             else:
-                reward = -0.1
+                reward = - 0.1 * (self.visited_cell.count(current_cell) + 1)
 
             self.visited_cell.append(current_cell)
+
         else:
             self.consecutive_invalid_moves += 1
-            reward = max(-1, -0.1 * self.consecutive_invalid_moves)
+            reward = max(-0.5, -0.1 * self.consecutive_invalid_moves)
 
         self.cum_rew += reward
         self.step_count += 1
