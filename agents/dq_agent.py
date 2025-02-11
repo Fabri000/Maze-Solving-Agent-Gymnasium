@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from collections import defaultdict
 
 class DQAgent:
@@ -25,6 +26,8 @@ class DQAgent:
 
         self.gamma = gamma
 
+        self.steps_done = 0
+
         self.training_error = []
 
     def get_action(self,obs):
@@ -32,7 +35,9 @@ class DQAgent:
         Returns the best action with probability (1 - epsilon)
         otherwise a random action with probability epsilon to ensure exploration.
         """
-        if np.random.random() < self.epsilon:
+        epsilon_threshold = self.final_epsilon + (self.initial_epsilon - self.final_epsilon) * math.exp(-1. * self.steps_done / self.epsilon_decay)
+        self.steps_done += 1
+        if np.random.random() < epsilon_threshold:
             return self.env.action_space.sample()
         else:
             q_table = self.q_a_values[str(obs)]+self.q_a_values[str(obs)]
@@ -58,5 +63,5 @@ class DQAgent:
 
         self.training_error.append(td_error)
 
-    def decay_epsilon(self):
-        self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)        
+    def update_epsilon_decay(self,maze_shape, n_episodes:int):
+        self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes     

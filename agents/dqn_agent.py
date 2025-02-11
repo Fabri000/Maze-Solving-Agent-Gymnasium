@@ -20,8 +20,10 @@ class DQN(nn.Module):
         self.model =nn.Sequential(
             nn.Linear(n_observations,hidden_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(hidden_dim,hidden_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(hidden_dim,n_actions),
             nn.Softmax()
         )
@@ -66,7 +68,7 @@ class DQNAgent():
         self.memory = ReplayMemory(memory_size)
 
         self.optimizer = optim.AdamW(self.source_net.parameters(),learning_rate)
-        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=30,eta_min=1e-5,verbose=True)
+        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=30,eta_min=1e-6)
         self.steps_done = 0
     
     def memorize(self,*args):
@@ -127,3 +129,6 @@ class DQNAgent():
 
     def update_target(self):
         self.target_net.load_state_dict(self.source_net.state_dict()) 
+    
+    def update_epsilon_decay(self,maze_shape, n_episodes:int):
+        self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes

@@ -6,7 +6,8 @@ from agents.q_agent import QAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-start_pos,maze = gen_maze((21,21))
+maze_size = (21,21)
+start_pos,maze = gen_maze(maze_size)
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
 
 '''start_pos = (1,1) # rows , columns
@@ -24,6 +25,7 @@ maze = [
 win_pos = (5,3)'''
 
 n_episodes = 100
+total_steps = maze_size[0]*maze_size[1]*n_episodes
 
 env = MazeEnv(maze,start_pos,win_pos)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
@@ -33,7 +35,7 @@ agent = QAgent(
     env=env,
     learning_rate=0.01,
     initial_epsilon=1.0,
-    epsilon_decay= 1 / (n_episodes/2),
+    epsilon_decay= 0.25 * total_steps,
     final_epsilon=0.1,
 )
 

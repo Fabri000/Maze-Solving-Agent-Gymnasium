@@ -52,9 +52,85 @@ class VariableMazeEnv(gym.Env):
         self.consecutive_invalid_moves = 0
         self.reset()
 
+    def _get_obs(self):
+        return {"agent": self._agent_location, "target": self._target_location,"best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
+    
+    def _get_info(self):
+        return {
+            "distance": np.linalg.norm(
+                self._agent_location-self._target_location, ord=1
+            )
+        }
+    
+    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+        self._agent_location = np.array(self._start_pos,dtype=np.int32)
+        self.maze_view._reset_agent()
+
+        observation = self._get_obs()
+        info = self._get_info()
+        self.cum_rew = 0
+        self.step_count=0
+        self.consecutive_invalid_moves = 0
+        self.visited_cell= []
+
+        return observation, info
+    
+    def step(self, action):
+        reward = 0
+        terminated = False
+        truncated = False
+        prev_pos = self._agent_location
+        moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
+
+        if moved:
+            self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
+            current_cell = tuple(self._agent_location)
+            self.consecutive_invalid_moves = 0
+
+            if current_cell not in self.visited_cell:
+                if np.array_equal(self._agent_location, self._target_location):
+                    reward = 10
+                    terminated = True
+                    self.update_maze()
+                else:
+                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
+                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
+                    reward = (old_dist - new_dist) * 1.5
+            else:
+                reward = - 0.1 * (self.visited_cell.count(current_cell))
+
+            self.visited_cell.append(current_cell)
+        else:
+            self.consecutive_invalid_moves += 1
+            reward = max(-0.5, -0.1 * self.consecutive_invalid_moves)
+
+        self.cum_rew += reward
+        self.step_count += 1
+        if self.step_count >= self.max_steps:
+            truncated = True
+
+        observation = self._get_obs()
+        info = self._get_info()
+
+        if truncated or terminated:
+            self.reset()
+
+        return observation, reward, truncated, terminated, info
+
+    def render(self,mode="human",close=False):
+        if close:
+            self.maze_view.quit_game()
+        return self.maze_view.update(mode)
+
+    def get_maze_shape(self):
+        return self.current_shape
+    
+    def get_max_shape(self):
+        return self.max_shape
+
     def update_maze(self,training=True):
         if training:
-            if self.current_shape < self.max_shape:
+            if self.current_shape <= self.max_shape:
                 self.current_shape = tuple(a+b for a,b in zip(self.current_shape,(2,2)))
         else:
             self.current_shape = random.choice([(x,x) for x in range(5,self.max_shape[0],2)])
@@ -80,79 +156,3 @@ class VariableMazeEnv(gym.Env):
                 best_dist = dist_to_goal
                 best_path = path
         return best_path[0]
-
-    def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location,"best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
-    
-    def _get_info(self):
-        return {
-            "distance": np.linalg.norm(
-                self._agent_location-self._target_location, ord=1
-            )
-        }
-    
-    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
-
-        self._agent_location = np.array(self._start_pos,dtype=np.int32)
-        self.maze_view._reset_agent()
-
-        observation = self._get_obs()
-        info = self._get_info()
-        self.cum_rew = 0
-        self.step_count=0
-        self.consecutive_invalid_moves = 0
-        self.visited_cell= []
-
-        return observation, info
-    
-    def step(self, action):
-        reward = 0
-        terminated = False
-        truncated = False
-
-        prev_pos = self._agent_location
-        moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
-
-        if moved:
-            self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
-            current_cell = tuple(self._agent_location)
-            self.consecutive_invalid_moves = 0
-
-            if current_cell not in self.visited_cell:
-                if np.array_equal(self._agent_location, self._target_location):
-                    self.update_maze()
-                    reward = 10
-                    terminated = True
-                else:
-                    new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
-                    old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-                    reward = (old_dist - new_dist) * 1.5
-            else:
-                reward = -0.1 * (self.visited_cell.count(current_cell) + 1)
-
-            self.visited_cell.append(current_cell)
-        else:
-            self.consecutive_invalid_moves += 1
-            reward = max(0.5, -0.1 * self.consecutive_invalid_moves)
-
-        self.cum_rew += reward
-        self.step_count += 1
-        if self.step_count >= self.max_steps:
-            truncated = True
-
-        observation = self._get_obs()
-        info = self._get_info()
-
-        if truncated or terminated:
-            self.reset()
-
-        return observation, reward, truncated, terminated, info
-
-    def render(self,mode="human",close=False):
-        if close:
-            self.maze_view.quit_game()
-
-        return self.maze_view.update(mode)
-
-    def get_current_shape(self):
-        return self.current_shape

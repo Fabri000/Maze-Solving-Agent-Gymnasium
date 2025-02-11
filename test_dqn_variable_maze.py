@@ -11,12 +11,14 @@ import torch_directml
 maze_max_shape = (31,31)
 n_episodes = 500
 
+tot_steps = 7*7*n_episodes
+
 env = VariableMazeEnv(max_shape=maze_max_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 device = torch_directml.device()
 
-agent = DQNAgent(env,learning_rate=1e-2,starting_epsilon=0.9,final_epsilon=0.05,epsilon_decay=(n_episodes * 20),discount_factor=0.99,batch_size=128,memory_size=10000,target_update_frequency=50,device=device)
+agent = DQNAgent(env,learning_rate=1e-2,starting_epsilon=0.9,final_epsilon=0.05,epsilon_decay=0.25*tot_steps,discount_factor=0.99,batch_size=128,memory_size=10000,target_update_frequency=50,device=device)
 
 logger = init_logger("Agent_log","logs/variable_dqn_logs")
 

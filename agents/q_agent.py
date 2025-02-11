@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 import numpy as np
+import math
 
 class QAgent:
     def __init__(
@@ -30,9 +31,11 @@ class QAgent:
         self.lr = learning_rate
         self.discount_factor = discount_factor
 
-        self.epsilon = initial_epsilon
+        self.initial_epsilon=initial_epsilon
         self.epsilon_decay = epsilon_decay
         self.final_epsilon = final_epsilon
+
+        self.steps_done = 0
 
         self.training_error = []
 
@@ -41,7 +44,9 @@ class QAgent:
         Returns the best action with probability (1 - epsilon)
         otherwise a random action with probability epsilon to ensure exploration.
         """
-        if np.random.random() < self.epsilon:
+        epsilon_threshold = self.final_epsilon + (self.initial_epsilon - self.final_epsilon) * math.exp(-1. * self.steps_done / self.epsilon_decay)
+        self.steps_done += 1
+        if np.random.random() < epsilon_threshold:
             return self.env.action_space.sample()
 
         else:
@@ -65,6 +70,6 @@ class QAgent:
         )
         self.training_error.append(temporal_difference)
 
-    def decay_epsilon(self):
-        self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
     
+    def update_epsilon_decay(self,maze_shape, n_episodes:int):
+        self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes

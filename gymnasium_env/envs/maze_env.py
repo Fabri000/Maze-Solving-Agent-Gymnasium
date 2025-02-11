@@ -121,15 +121,16 @@ class MazeEnv(gym.Env):
                 else:
                     new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-                    reward = (old_dist - new_dist) * 1.5
+                    reward =  max(0, (old_dist - new_dist) * 5)
+                reward +=0.5
             else:
-                reward = - 0.1 * (self.visited_cell.count(current_cell) + 1)
+                reward = - 0.1 * (self.visited_cell.count(current_cell))
 
             self.visited_cell.append(current_cell)
 
         else:
             self.consecutive_invalid_moves += 1
-            reward = max(-0.5, -0.1 * self.consecutive_invalid_moves)
+            reward = -0.1 * (self.consecutive_invalid_moves)
 
         self.cum_rew += reward
         self.step_count += 1
@@ -157,3 +158,6 @@ class MazeEnv(gym.Env):
         self._goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
 
         self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.maze_shape)
+    
+    def get_maze_shape(self):
+        return self.maze_shape
