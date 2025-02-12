@@ -110,6 +110,8 @@ class DQNAgent():
         # Compute loss between our state action and expectations
         loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
+        ret = loss.item()
+
         self.optimizer.zero_grad()
         loss.backward()
 
@@ -117,12 +119,14 @@ class DQNAgent():
             param.grad.data.clamp_(-1, 1)
 
         self.optimizer.step()
+
+        return ret
     
     def scheduler_step(self):
         self.lr_scheduler.step()
     
     def has_to_update(self,episode:int):
-        if episode % self.target_update_frequency:
+        if episode % self.target_update_frequency == 0:
             return True
         else:
             return False
@@ -131,4 +135,4 @@ class DQNAgent():
         self.target_net.load_state_dict(self.source_net.state_dict()) 
     
     def update_epsilon_decay(self,maze_shape, n_episodes:int):
-        self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes
+        self.epsilon_decay = 0.15 * maze_shape[0] * maze_shape[0] * n_episodes

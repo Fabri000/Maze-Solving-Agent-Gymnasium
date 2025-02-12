@@ -1,5 +1,6 @@
 from typing import Optional
 
+import math
 import numpy as np
 
 from lib.maze_view import MazeView
@@ -46,7 +47,6 @@ class MazeEnv(gym.Env):
 
         self.max_steps = self.maze_shape[0]*self.maze_shape[1]
         self.visited_cell= []
-        self.cum_rew = 0
         self.step_count=0
         self.consecutive_invalid_moves = 0
         self.reset()
@@ -94,7 +94,6 @@ class MazeEnv(gym.Env):
 
         observation = self._get_obs()
         info = self._get_info()
-        self.cum_rew = 0
         self.step_count=0
         self.consecutive_invalid_moves = 0
         self.visited_cell= []
@@ -116,25 +115,22 @@ class MazeEnv(gym.Env):
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
-                    reward = 10
+                    reward = 1
                     terminated = True
                 else:
                     new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-                    reward =  max(0, (old_dist - new_dist) * 5)
-                reward +=0.5
+                    reward = (old_dist - new_dist) * 0.5
+                reward
             else:
-                reward = - 0.1 * (self.visited_cell.count(current_cell))
+                reward = -1 + math.exp(- 0.1 * (self.visited_cell.count(current_cell)))
 
             self.visited_cell.append(current_cell)
-
         else:
             self.consecutive_invalid_moves += 1
-            reward = -0.1 * (self.consecutive_invalid_moves)
+            reward = -1 + math.exp(- 0.15 * (self.consecutive_invalid_moves))
 
-        self.cum_rew += reward
         self.step_count += 1
-
         if self.step_count >= self.max_steps:
             truncated = True
 

@@ -6,7 +6,7 @@ from agents.dq_agent import DQAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_size = (15,15)
+maze_size = (27,27)
 start_pos,maze = gen_maze(maze_size)
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
 
@@ -26,23 +26,27 @@ win_pos = (5,3)'''
 
 
 n_episodes = 150
-total_steps = maze_size[0]*maze_size[1]*n_episodes
+lr = 1e-3
+eps_init = 1
+eps_end = 0.05
+eps_dec = n_episodes
 
 env = MazeEnv(maze,start_pos,win_pos)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 agent = DQAgent(
     env=env,
-    learning_rate=1e-2,
-    initial_epsilon=1.0,
-    epsilon_decay=total_steps*0.25,
-    final_epsilon=1e-1,
+    learning_rate=lr,
+    initial_epsilon=eps_init,
+    final_epsilon= eps_end,
+    epsilon_decay= eps_dec,
 )
 
 log_dir = "logs/doub_q_logs"
 logger = init_logger("Agent_log",log_dir)
 
 logger.info(f"Maze of shape {env.env.get_maze_shape()} | total episodes of training {n_episodes}")
+logger.debug(f"Hyperparameter of training: learning rate {lr} | initial epsilon {eps_init} | final epsilon {eps_end} | decay {eps_dec}")
 
 trainer = OffPolicyTrainer(env,agent,logger)
 

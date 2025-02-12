@@ -1,7 +1,8 @@
 from typing import Optional
 
-import numpy as np
 import random
+import math
+import numpy as np
 
 from lib.maze_view import MazeView
 from lib.maze_generator import gen_maze
@@ -47,7 +48,6 @@ class VariableMazeEnv(gym.Env):
         
         self.max_steps = self.current_shape[0] * self.current_shape[1]
         self.visited_cell= []
-        self.cum_rew = 0
         self.step_count=0
         self.consecutive_invalid_moves = 0
         self.reset()
@@ -68,7 +68,6 @@ class VariableMazeEnv(gym.Env):
 
         observation = self._get_obs()
         info = self._get_info()
-        self.cum_rew = 0
         self.step_count=0
         self.consecutive_invalid_moves = 0
         self.visited_cell= []
@@ -89,28 +88,27 @@ class VariableMazeEnv(gym.Env):
 
             if current_cell not in self.visited_cell:
                 if np.array_equal(self._agent_location, self._target_location):
-                    reward = 10
-                    terminated = True
                     self.update_maze()
+                    reward = 1
+                    terminated = True
                 else:
                     new_dist = len(astar_limited_partial(self.maze_map, current_cell, tuple(self._target_location)))
                     old_dist = len(astar_limited_partial(self.maze_map, tuple(prev_pos), tuple(self._target_location)))
-                    reward = (old_dist - new_dist) * 1.5
+                    reward = (old_dist - new_dist) * 0.5
             else:
-                reward = - 0.1 * (self.visited_cell.count(current_cell))
+                reward = -1 + math.exp(- 0.1 * (self.visited_cell.count(current_cell)))
 
             self.visited_cell.append(current_cell)
         else:
             self.consecutive_invalid_moves += 1
-            reward = max(-0.5, -0.1 * self.consecutive_invalid_moves)
-
-        self.cum_rew += reward
-        self.step_count += 1
-        if self.step_count >= self.max_steps:
-            truncated = True
+            reward = -1 + math.exp(- 0.15 * (self.consecutive_invalid_moves))
 
         observation = self._get_obs()
         info = self._get_info()
+
+        self.step_count += 1
+        if self.step_count >= self.max_steps:
+            truncated = True
 
         if truncated or terminated:
             self.reset()
@@ -135,7 +133,7 @@ class VariableMazeEnv(gym.Env):
         else:
             self.current_shape = random.choice([(x,x) for x in range(5,self.max_shape[0],2)])
             
-        self.max_steps = self.current_shape[0] * self.current_shape[1]
+        self.max_steps = self.current_shape[0] * self.current_shape[1] / 2
         self._start_pos , self.maze_map= gen_maze(self.current_shape)
         goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
         self._target_location = np.array(goal_pos, dtype=np.int32)
