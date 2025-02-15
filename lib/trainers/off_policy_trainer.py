@@ -22,6 +22,7 @@ class OffPolicyTrainer():
             done = False
             cumulative = 0
             maze_size =  self.env.env.get_maze_shape()
+            win = False
             # play one episode
             while not done:
                 action = self.agent.get_action(obs)
@@ -34,52 +35,60 @@ class OffPolicyTrainer():
                 # update if the environment is done and the current obs
                 done = terminated or truncated
                 
-                obs = next_obs
+                win = terminated
 
+                obs = next_obs
+            
+            if win:
+                if isinstance(self.env.env, MazeEnv):
+                    self.env.env.update_maze()
+                elif isinstance(self.env.env, VariableMazeEnv):
+                    self.env.env.update_maze()
+
+            win_status = "Win" if win else "Lost"
             if self.is_maze_variable:
-                self.logger.info(f'Episode {episode}: cumulative reward {cumulative} | maze of shape {maze_size}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | maze of shape {maze_size} | {win_status}')
                 if self.env.env.get_maze_shape() == self.env.env.max_shape:
                     self.logger.info(f'Episode {episode} hitted max shape of maze')
                     return
             else:
-                self.logger.info(f'Episode {episode}: cumulative reward {cumulative}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | {win_status}')
 
         self.logger.info(f'End training')
     
     def test(self, num_mazes:int):
-        win = 0
+        win_count = 0
         self.logger.info(f'Start testing')
         for _ in range(num_mazes):
             if isinstance(self.env.env, MazeEnv):
                 self.env.env.update_maze()
             elif isinstance(self.env.env, VariableMazeEnv):
-                self.env.env.update_maze(False)
+                self.env.env.update_maze(training= False)
 
             obs, _ = self.env.reset()
             done = False
 
             maze_size =  self.env.env.get_maze_shape()
-            lost = False
+            win = False
             total_reward = 0
             while not done:
                 action = self.agent.get_action(obs)
                 next_obs, reward, truncated, terminated, _ = self.env.step(action)
                 total_reward += reward
                 if terminated:
-                    
-                    win += 1
-                    done = True
+                    win_count += 1
+                    done= win = True
                 else:
-                    done = lost= truncated
+                    done = truncated
                 obs = next_obs
             
-            result = "Lost" if lost else "Win"
+            result = "Win" if win else "Lost"
             if self.is_maze_variable:
-                        self.logger.info(f'{result} | maze shape {maze_size} | cumulative reward {total_reward}')    
+                        self.logger.info(f'{result} | maze shape {maze_size} | cumulative reward {round(total_reward,2)}')
             else:
-                        self.logger.info(f'{result} | cumulative reward {total_reward}')
+                        self.logger.info(f'{result} | cumulative reward {round(total_reward,2)}')
 
-        self.logger.info(f'End test | Win Rate {(win / num_mazes)*100} %')
+        self.logger.info(f'End test | Win Rate {round(win_count / num_mazes,4) *100} %')
 
 class NeuralOffPolicyTrainer():
     def __init__(self,agent,env,device,logger):
@@ -123,15 +132,21 @@ class NeuralOffPolicyTrainer():
 
                 if loss:
                     total_loss +=loss
+            
+            if win:
+                if isinstance(self.env.env, MazeEnv):
+                    self.env.env.update_maze()
+                elif isinstance(self.env.env, VariableMazeEnv):
+                    self.env.env.update_maze()
 
             result = "Win" if win else "Lost"
             if self.is_maze_variable:
-                self.logger.info(f'Episode {episode}: cumulative reward {cum_rew} | {result} | maze of shape {maze_size} | average loss {total_loss / num_step}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size} | average loss {round(total_loss / num_step,4)}')
                 if self.env.env.get_maze_shape() == self.env.env.get_max_shape():
                     self.logger.info(f'Episode {episode} hitted max shape of maze')
                     return
             else:
-                self.logger.info(f'Episode {episode}: cumulative reward {cum_rew} | {result} | average loss {total_loss / num_step}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | average loss {round(total_loss / num_step,4)}')
                 
             cum_rew = 0
             self.agent.scheduler_step()
@@ -172,8 +187,8 @@ class NeuralOffPolicyTrainer():
 
             result = "Lost" if lost else "Win"
             if self.is_maze_variable:
-                        self.logger.info(f'{result} | maze shape {maze_size} | total reward {total_reward}')
+                        self.logger.info(f'{result} | maze shape {maze_size} | total reward {round(total_reward,4)}')
             else:
-                        self.logger.info(f'{result} | total reward {total_reward}')
+                        self.logger.info(f'{result} | total reward {round(total_reward,4)}')
 
-        self.logger.info(f'End testing | total Win Rate {(win / num_mazes)*100}')
+        self.logger.info(f'End testing | total Win Rate {round(win / num_mazes,4)*100}')

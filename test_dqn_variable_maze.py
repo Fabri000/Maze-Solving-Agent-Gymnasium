@@ -9,7 +9,7 @@ import torch_directml
 
 
 maze_max_shape = (31,31)
-n_episodes = 500
+n_episodes = 150
 learning_rate=1e-3
 starting_epsilon=1
 final_epsilon=0.05
@@ -32,4 +32,4 @@ logger.debug(f"Hyperparameters: lr {learning_rate} | eps_init {starting_epsilon}
 trainer = NeuralOffPolicyTrainer(agent,env,device,logger)
 
 trainer.train(n_episodes)
-trainer.test(50)
+trainer.test(len(env.env.mazes))
