@@ -53,4 +53,4 @@ logger.debug(f"Hyperparameters: lr {learning_rate} | eps_init {starting_epsilon}
 trainer = NeuralOffPolicyTrainer(agent,env,device,logger)
 
 trainer.train(n_episodes)
-trainer.test(50)
+trainer.train_learned_maze(len(env.env.mazes))

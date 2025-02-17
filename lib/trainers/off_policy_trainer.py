@@ -40,9 +40,6 @@ class OffPolicyTrainer():
                 obs = next_obs
             
             if win:
-                if isinstance(self.env.env, MazeEnv):
-                    self.env.env.update_maze()
-                elif isinstance(self.env.env, VariableMazeEnv):
                     self.env.env.update_maze()
 
             win_status = "Win" if win else "Lost"
@@ -60,10 +57,7 @@ class OffPolicyTrainer():
         win_count = 0
         self.logger.info(f'Start testing')
         for _ in range(num_mazes):
-            if isinstance(self.env.env, MazeEnv):
-                self.env.env.update_maze()
-            elif isinstance(self.env.env, VariableMazeEnv):
-                self.env.env.update_maze(training= False)
+            self.env.env.update_visited_maze()
 
             obs, _ = self.env.reset()
             done = False
@@ -77,7 +71,8 @@ class OffPolicyTrainer():
                 total_reward += reward
                 if terminated:
                     win_count += 1
-                    done= win = True
+                    done = True
+                    win = True
                 else:
                     done = truncated
                 obs = next_obs
@@ -89,6 +84,41 @@ class OffPolicyTrainer():
                         self.logger.info(f'{result} | cumulative reward {round(total_reward,2)}')
 
         self.logger.info(f'End test | Win Rate {round(win_count / num_mazes,4) *100} %')
+    
+    def train_learned_maze(self, n_mazes:int):
+        self.logger.debug("Training on already learned maze")
+
+        for _ in range(n_mazes):
+            self.env.env.update_visited_maze(remove = False)
+            
+            done = False
+            maze_size =  (0,0)
+            episode_count = 0
+            win = False
+            while not win:
+                episode_count += 1
+                obs, _ = self.env.reset()
+                done = False
+                cumulative = 0
+                maze_size =  self.env.env.get_maze_shape()
+                
+                # play one episode
+                while not done:
+                    action = self.agent.get_action(obs)
+                    next_obs, reward, truncated, terminated, _ = self.env.step(action)
+                    cumulative += reward
+
+                    self.agent.update(obs, action, reward, terminated, next_obs)
+
+                    done = terminated or truncated
+                    
+                    win = terminated
+
+                    obs = next_obs
+
+                self.logger.info(f'Episode to learn to solve the maze {episode_count} | maze of shape {maze_size}')
+        self.logger.debug("End learning on already learned mazes")
+        
 
 class NeuralOffPolicyTrainer():
     def __init__(self,agent,env,device,logger):
@@ -124,7 +154,7 @@ class NeuralOffPolicyTrainer():
                 win = terminated
 
                 if done and self.is_maze_variable:
-                    self.agent.update_epsilon_decay(self.env.env.get_maze_shape(),n_episodes)
+                    self.agent.update_epsilon_decay(self.env.env.get_maze_shape())
 
                 state = next_state
 
@@ -134,10 +164,7 @@ class NeuralOffPolicyTrainer():
                     total_loss +=loss
             
             if win:
-                if isinstance(self.env.env, MazeEnv):
-                    self.env.env.update_maze()
-                elif isinstance(self.env.env, VariableMazeEnv):
-                    self.env.env.update_maze()
+                self.env.env.update_maze()
 
             result = "Win" if win else "Lost"
             if self.is_maze_variable:
@@ -161,11 +188,9 @@ class NeuralOffPolicyTrainer():
         self.logger.info(f'Start of Testing')
 
         win = 0
-        for _ in range(num_mazes):
-            if isinstance(self.env.env, MazeEnv):
-                self.env.env.update_maze()
-            elif isinstance(self.env.env, VariableMazeEnv):
-                self.env.env.update_maze(False)
+        for i in range(num_mazes):
+            print(i)
+            self.env.env.update_visited_maze()
                 
             obs, _ = self.env.reset()
             done = False
@@ -187,8 +212,52 @@ class NeuralOffPolicyTrainer():
 
             result = "Lost" if lost else "Win"
             if self.is_maze_variable:
-                        self.logger.info(f'{result} | maze shape {maze_size} | total reward {round(total_reward,4)}')
+                self.logger.info(f'{result} | maze shape {maze_size} | total reward {round(total_reward,4)}')
             else:
-                        self.logger.info(f'{result} | total reward {round(total_reward,4)}')
+                self.logger.info(f'{result} | total reward {round(total_reward,4)}')
 
         self.logger.info(f'End testing | total Win Rate {round(win / num_mazes,4)*100}')
+
+
+    def train_learned_maze(self, n_mazes:int):
+        self.logger.debug("Training on already learned maze")
+        
+        for _ in range(n_mazes):
+            self.env.env.update_visited_maze(remove = False)
+
+            done = False
+            maze_size =  (0,0)
+            episode_count = 0
+            win = False
+
+            while not win:
+                episode_count += 1
+                obs, _ = self.env.reset()
+                done = False
+                maze_size =  self.env.env.get_maze_shape()
+                
+                state = torch.tensor(np.concatenate([obs[k] for k in obs], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
+                # play one episode
+                while True:
+                    action = self.agent.get_action(state)
+                    next_obs, reward, truncated, terminated, _ = self.env.step(action.item())
+                    
+                    next_state = torch.tensor(np.concatenate([next_obs[k] for k in next_obs], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
+
+                    self.agent.memorize(state,action,next_state,reward)
+
+                    done = terminated or truncated
+                    
+
+                    if done and self.is_maze_variable:
+                        self.agent.update_epsilon_decay(self.env.env.get_maze_shape())
+
+                    if done:
+                        win = terminated
+                        break
+
+                    state = next_state
+                    self.agent.optimize_model()
+
+            self.logger.info(f'Episode to learn to solve the maze {episode_count} | maze of shape {maze_size}')
+        self.logger.debug("End learning on already learned mazes")

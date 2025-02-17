@@ -5,7 +5,7 @@ from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from agents.q_agent import QAgent
 from lib.logger_inizializer import init_logger
 
-maze_max_shape=(21,21)
+maze_max_shape=(51,51)
 n_episodes = 125
 lr = 1e-3
 eps_init = 1
@@ -33,4 +33,4 @@ trainer = OffPolicyTrainer(env,agent,logger)
 
 trainer.train(n_episodes)
 
-trainer.test(len(env.env.mazes))
+trainer.train_learned_maze(n_mazes=len(env.env.mazes))

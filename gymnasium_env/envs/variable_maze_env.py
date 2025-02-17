@@ -26,15 +26,15 @@ class VariableMazeEnv(gym.Env):
         self.render_mode = render_mode
         self.max_shape = max_shape
 
-        self.current_shape = VariableMazeEnv.START_SHAPE
-        self._start_pos , self.maze_map,= gen_maze(self.current_shape)
-        goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+        self.maze_shape = VariableMazeEnv.START_SHAPE
+        self._start_pos , self.maze_map,= gen_maze(self.maze_shape)
+        goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
 
         self._agent_location = np.array(self._start_pos, dtype=np.int32)
         self._target_location = np.array(goal_pos, dtype=np.int32)
 
         if self.render_mode == "human":
-            self.maze_view = MazeView(self.maze_map,self._start_pos,self._target_location,self.current_shape)
+            self.maze_view = MazeView(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         
 
         self.observation_space = spaces.Dict(
@@ -47,12 +47,13 @@ class VariableMazeEnv(gym.Env):
 
         self.action_space = gym.spaces.Discrete(4)
         
-        self.max_steps = self.current_shape[0] * self.current_shape[1]
+        self.min_cum_rew = - self.maze_shape[0]
+        self.cum_rew = 0
         self.visited_cell= []
-        self.step_count=0
         self.consecutive_invalid_moves = 0
 
-        self.mazes = [[self._start_pos, self.current_shape, self.maze_map]]
+        self.mazes = [[self._start_pos, self.maze_shape, self.maze_map]]
+        self.next = 0
         self.reset()
 
     def _get_obs(self):
@@ -71,7 +72,8 @@ class VariableMazeEnv(gym.Env):
 
         observation = self._get_obs()
         info = self._get_info()
-        self.step_count=0
+
+        self.cum_rew = 0
         self.consecutive_invalid_moves = 0
         self.visited_cell= []
 
@@ -81,6 +83,7 @@ class VariableMazeEnv(gym.Env):
         reward = 0
         terminated = False
         truncated = False
+
         prev_pos = self._agent_location
         moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
 
@@ -107,9 +110,9 @@ class VariableMazeEnv(gym.Env):
 
         observation = self._get_obs()
         info = self._get_info()
-
-        self.step_count += 1
-        if self.step_count >= self.max_steps:
+        
+        self.cum_rew += reward
+        if self.cum_rew < self.min_cum_rew:
             truncated = True
 
         if truncated or terminated:
@@ -123,31 +126,41 @@ class VariableMazeEnv(gym.Env):
         return self.maze_view.update(mode)
 
     def get_maze_shape(self):
-        return self.current_shape
+        return self.maze_shape
     
     def get_max_shape(self):
         return self.max_shape
 
-    def update_maze(self,training=True):
-        if training:
-            shape = tuple(a+b for a,b in zip(self.current_shape,(2,2)))
-            if shape <= self.max_shape:
-                self.current_shape = shape
-                self.max_steps = self.current_shape[0] * self.current_shape[1]
-                self._start_pos , self.maze_map= gen_maze(self.current_shape)
-                goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
-                self._target_location = np.array(goal_pos, dtype=np.int32)
-                print(self.current_shape)
-                self.mazes.append([self._start_pos,self.current_shape,self.maze_map])
-        else:
-            self._start_pos, self.current_shape,self.maze_map = random.choice(self.mazes)
-            self.mazes.remove([self._start_pos,self.current_shape,self.maze_map])
-            self.max_steps = self.current_shape[0] * self.current_shape[1]
-            goal_pos = [(r, c) for r in range(self.current_shape[0]) for c in range(self.current_shape[1]) if self.maze_map[r][c] == 2][0]
+    def update_maze(self):
+        shape = tuple(a+b for a,b in zip(self.maze_shape,(2,2)))
+        if shape <= self.max_shape:
+            self.maze_shape = shape
+            self.min_cum_rew = - min(self.maze_shape[0],self.max_shape[1])
+            
+            self._start_pos , self.maze_map= gen_maze(self.maze_shape)
+            goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
             self._target_location = np.array(goal_pos, dtype=np.int32)
+            self.mazes.append([self._start_pos,self.maze_shape,self.maze_map])
+            
+            self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
+            self.reset()
+
+        else:
+            random.shuffle(self.mazes)
+    
+    def update_visited_maze(self, remove= True):
+        self._start_pos, self.maze_shape,self.maze_map = self.mazes[self.next]
+
+        if remove:
+            self.mazes.remove([self._start_pos,self.maze_shape,self.maze_map])
+        else:
+            self.next +=1
         
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.current_shape)
+        self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1])
+        goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
+        self._target_location = np.array(goal_pos, dtype=np.int32)
         
+        self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         self.reset()
 
     def _find_best_next_cell(self,agent_pos):

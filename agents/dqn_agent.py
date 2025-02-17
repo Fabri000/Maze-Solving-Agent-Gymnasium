@@ -134,5 +134,5 @@ class DQNAgent():
     def update_target(self):
         self.target_net.load_state_dict(self.source_net.state_dict()) 
     
-    def update_epsilon_decay(self,maze_shape, n_episodes:int):
-        self.epsilon_decay = 0.15 * maze_shape[0] * maze_shape[0] * n_episodes
+    def update_epsilon_decay(self,maze_shape):
+        self.epsilon_decay = 0.15 * maze_shape[0] * maze_shape[0]

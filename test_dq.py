@@ -51,4 +51,4 @@ logger.debug(f"Hyperparameter of training: learning rate {lr} | initial epsilon 
 trainer = OffPolicyTrainer(env,agent,logger)
 
 trainer.train(n_episodes)
-trainer.test(30)
+trainer.train_learned_maze(len(env.env.mazes))

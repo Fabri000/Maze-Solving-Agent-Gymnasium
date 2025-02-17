@@ -6,23 +6,9 @@ from agents.q_agent import QAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_size = (51,51)
+maze_size = (21,21)
 start_pos,maze = gen_maze(maze_size)
 win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
-
-'''start_pos = (1,1) # rows , columns
-maze = [
-    [0,0,0,0,0,0,0,0,0,0,0],
-    [0,1,0,1,1,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0,1,0,1,0],
-    [0,1,0,1,0,1,0,1,0,1,0],
-    [0,1,0,2,0,1,1,1,1,1,0],
-    [0,1,0,0,0,0,0,0,0,1,0],
-    [0,1,1,1,1,1,1,1,1,1,0],
-    [0,0,0,0,0,0,0,0,0,0,0]
-]
-win_pos = (5,3)'''
 
 n_episodes = 100
 lr = 1e-3
@@ -51,4 +37,4 @@ trainer = OffPolicyTrainer(env,agent,logger)
 
 trainer.train(n_episodes)
 
-trainer.test(50)
+trainer.train_learned_maze(len(env.env.mazes))
