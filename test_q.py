@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 from gymnasium_env.envs.maze_env import MazeEnv
-from lib.maze_generator import gen_maze
+from lib.maze_generation import gen_maze
 from agents.q_agent import QAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.logger_inizializer import init_logger

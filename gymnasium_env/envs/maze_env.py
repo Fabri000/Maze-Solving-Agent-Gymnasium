@@ -5,7 +5,7 @@ import numpy as np
 
 from lib.maze_view import MazeView
 from lib.a_star import astar_limited_partial
-from lib.maze_generator import gen_maze
+from lib.maze_generation import gen_maze
 
 import gymnasium as gym
 from gymnasium import spaces
