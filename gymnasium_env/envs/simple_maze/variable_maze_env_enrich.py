@@ -3,17 +3,19 @@ from typing import Optional
 import random
 import math
 import numpy as np
+import torch.nn as nn
 
-from lib.maze_view import MazeView
+from lib.maze_view import MazeViewTemplate
 from lib.maze_generation import gen_maze
-from lib.a_star import astar_limited_partial
+from lib.a_star_algos.a_star import astar_limited_partial
+from lib.maze_handler import extract_submaze,get_mask_tensor
 
 import gymnasium as gym
 from gymnasium import spaces
 
-class VariableMazeEnv(gym.Env):
+class EnrichVariableMazeEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'],"render_fps": 4}
-    START_SHAPE = (7,7)
+    START_SHAPE = (15,15)
 
     ACTIONS = {           
             0: np.array([1, 0]),  # down
@@ -22,11 +24,13 @@ class VariableMazeEnv(gym.Env):
             3: np.array([0, -1]),  # left
         }
     
-    def __init__(self,max_shape:tuple[int,int],render_mode = "human"):
+    def __init__(self,max_shape:tuple[int,int],encoder:nn.Sequential,render_mode = "human"):
+
+        self.encoder = encoder
         self.render_mode = render_mode
         self.max_shape = max_shape
 
-        self.maze_shape = VariableMazeEnv.START_SHAPE
+        self.maze_shape = EnrichVariableMazeEnv.START_SHAPE
         self._start_pos , self.maze_map,= gen_maze(self.maze_shape)
         goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
 
@@ -34,14 +38,14 @@ class VariableMazeEnv(gym.Env):
         self._target_location = np.array(goal_pos, dtype=np.int32)
 
         if self.render_mode == "human":
-            self.maze_view = MazeView(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
+            self.maze_view = MazeViewTemplate(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         
-
         self.observation_space = spaces.Dict(
             {
                 "agent": gym.spaces.Box(low=np.array([0,0]),high=np.array(self.max_shape)),
                 "target": gym.spaces.Box(low=np.array([0,0]),high=np.array(self.max_shape)),
-                "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int)
+                "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
+                "window_feature": gym.spaces.Box(-1,1,shape=(72,),dtype=float),
             }
         )
 
@@ -57,7 +61,14 @@ class VariableMazeEnv(gym.Env):
         self.reset()
 
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location,"best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
+        sub_maze = extract_submaze(self.maze_map,self._agent_location,15)
+        feature = self.encoder(get_mask_tensor(sub_maze)).flatten().detach()
+        feature = (feature - feature.min()) / (feature.max() - feature.min() + 1e-8)
+        return {"agent": self._agent_location,
+                "target": self._target_location,
+                "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
+                "window_feature": feature
+            }
     
     def _get_info(self):
         return {
@@ -85,7 +96,7 @@ class VariableMazeEnv(gym.Env):
         truncated = False
 
         prev_pos = self._agent_location
-        moved = self.maze_view.move_agent(VariableMazeEnv.ACTIONS[action])
+        moved = self.maze_view.move_agent(EnrichVariableMazeEnv.ACTIONS[action])
 
         if moved:
             self._agent_location = np.array(self.maze_view._agent_position, dtype=np.int32)
@@ -165,8 +176,8 @@ class VariableMazeEnv(gym.Env):
 
     def _find_best_next_cell(self,agent_pos):
         paths = []
-        for dir in VariableMazeEnv.ACTIONS:
-            next_pos = tuple(agent_pos + VariableMazeEnv.ACTIONS[dir])
+        for dir in EnrichVariableMazeEnv.ACTIONS:
+            next_pos = tuple(agent_pos + EnrichVariableMazeEnv.ACTIONS[dir])
             if 0<next_pos[0]<len(self.maze_map) and 0<next_pos[1]<len(self.maze_map[0]) and self.maze_map[next_pos[0]][next_pos[1]]:
                 paths.append(astar_limited_partial(self.maze_map,next_pos,tuple(self._target_location.tolist()),max_depth=min(len(self.maze_map),len(self.maze_map[1]))))
         best_dist = len(self.maze_map)*len(self.maze_map[0])

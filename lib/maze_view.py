@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 
-class MazeView():
+class MazeViewTemplate():
     DIR = {
         'N': (-1,0),
         'S': (1,0),
@@ -13,14 +13,13 @@ class MazeView():
     CELL_COLORS = [(0,0,0),(255,255,255),(3, 255, 28)] #colors of wall, floor, goal
     AGENT_COLOR = (17, 0, 255)
 
-
     def __init__(self, maze_map, start_position, goal_position, maze_size: tuple[int,int], enable_render:bool=True):
         
         self.game_over = False
         self.enable_render = enable_render
         
         self.maze_size = maze_size
-        self.window_size = tuple([x*MazeView.TILE_SIZE for x in reversed(self.maze_size)])
+        self.window_size = tuple([x*MazeViewTemplate.TILE_SIZE for x in reversed(self.maze_size)])
         self.maze_map = maze_map
 
         self.start_position = start_position
@@ -46,7 +45,7 @@ class MazeView():
             self.__draw_maze()
 
             # show the robot
-            self.__draw_agent()
+            self._draw_agent()
 
             self.screen.blit(self.background,(0,0))
             self.screen.blit(self.maze_layer,(0,0))
@@ -60,7 +59,7 @@ class MazeView():
         self.goal_position = goal_position
         self.maze_size = maze_size
 
-        self.window_size = tuple([x*MazeView.TILE_SIZE for x in reversed(self.maze_size)])
+        self.window_size = tuple([x*MazeViewTemplate.TILE_SIZE for x in reversed(self.maze_size)])
         
         if self.enable_render:
             pygame.init()
@@ -77,7 +76,7 @@ class MazeView():
             self.__draw_maze()
 
             # show the robot
-            self.__draw_agent()
+            self._draw_agent()
 
             self.screen.blit(self.background,(0,0))
             self.screen.blit(self.maze_layer,(0,0))
@@ -90,34 +89,25 @@ class MazeView():
     
         for i in range(self.maze_size[0]):
             for j in range(self.maze_size[1]):
-                x,y = j * MazeView.TILE_SIZE, i * MazeView.TILE_SIZE
-                color = MazeView.CELL_COLORS[self.maze_map[i][j]]
-                pygame.draw.rect(self.maze_layer,color,pygame.Rect(x,y,MazeView.TILE_SIZE,MazeView.TILE_SIZE),0)
-                pygame.draw.rect(self.maze_layer,(148, 148, 148),pygame.Rect(x,y,MazeView.TILE_SIZE,MazeView.TILE_SIZE),1)
+                x,y = j * MazeViewTemplate.TILE_SIZE, i * MazeViewTemplate.TILE_SIZE
+                color = MazeViewTemplate.CELL_COLORS[self.maze_map[i][j]]
+                pygame.draw.rect(self.maze_layer,color,pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),0)
+                pygame.draw.rect(self.maze_layer,(148, 148, 148),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),1)
         
-    def __draw_agent(self,transparency=255):
+    def _draw_agent(self,transparency=255):
         if not self.enable_render:
             return
-        x,y = self._agent_position[1] * MazeView.TILE_SIZE + MazeView.TILE_SIZE // 4 , self._agent_position[0] * MazeView.TILE_SIZE +  MazeView.TILE_SIZE // 4
+        x,y = self._agent_position[1] * MazeViewTemplate.TILE_SIZE + MazeViewTemplate.TILE_SIZE // 4 , self._agent_position[0] * MazeViewTemplate.TILE_SIZE +  MazeViewTemplate.TILE_SIZE // 4
 
-        pygame.draw.rect(self.maze_layer,MazeView.AGENT_COLOR+(transparency,),pygame.Rect(x,y,MazeView.TILE_SIZE // 2,MazeView.TILE_SIZE // 2),0)
+        pygame.draw.rect(self.maze_layer,MazeViewTemplate.AGENT_COLOR+(transparency,),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE // 2,MazeViewTemplate.TILE_SIZE // 2),0)
 
     def move_agent(self, dir):
-        new_pos = self._agent_position + np.array(dir)
-        if 0 < new_pos[0]< len(self.maze_map)-1 and  0 < new_pos[1] < len(self.maze_map[0])-1:
-            if self.maze_map[new_pos[0]][new_pos[1]] != 0:
-                # update the drawing
-                self.__draw_agent(transparency=0)
-                # redraw previous cell
-                self.__draw_cell(self._agent_position)
-                # move the robot
-                self._agent_position += np.array(dir)
-                # if it's in a portal afterward
-                self.__draw_agent(transparency=255)
-                self.update()
-                return True
-        
-        return False
+        '''
+        Move the agent in the maze following the direction given.
+        Args:
+            dir (tuple): direction to move
+        '''
+        pass
 
     def update(self, mode="human"):
         try:
@@ -133,7 +123,7 @@ class MazeView():
     def view_update(self, mode="human"):
         if not self.game_over:
             # update the robot's position
-            self.__draw_agent()
+            self._draw_agent()
             
             self.screen.blit(self.background,(0,0))
             self.screen.blit(self.maze_layer,(0,0))
@@ -151,11 +141,17 @@ class MazeView():
                     self.game_over = True
                     self.quit_game()
     
+    def _draw_cell(self,position):
+        color = MazeViewTemplate.CELL_COLORS[self.maze_map[position[0]][position[1]]]
+        x,y = position[1] * MazeViewTemplate.TILE_SIZE, position[0] * MazeViewTemplate.TILE_SIZE
+        pygame.draw.rect(self.maze_layer,color,pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),0)
+        pygame.draw.rect(self.maze_layer,(148, 148, 148),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),1)
+
     def _reset_agent(self):
-        self.__draw_agent(transparency=0)
-        self.__draw_cell(self._agent_position)
+        self._draw_agent(transparency=0)
+        self._draw_cell(self._agent_position)
         self._agent_position = self.start_position
-        self.__draw_agent()
+        self._draw_agent()
 
     def quit_game(self):
         try:
@@ -166,8 +162,38 @@ class MazeView():
         except Exception:
             pass
 
-    def __draw_cell(self,position):
-        color = MazeView.CELL_COLORS[self.maze_map[position[0]][position[1]]]
-        x,y = position[1] * MazeView.TILE_SIZE, position[0] * MazeView.TILE_SIZE
-        pygame.draw.rect(self.maze_layer,color,pygame.Rect(x,y,MazeView.TILE_SIZE,MazeView.TILE_SIZE),0)
-        pygame.draw.rect(self.maze_layer,(148, 148, 148),pygame.Rect(x,y,MazeView.TILE_SIZE,MazeView.TILE_SIZE),1)
+
+class SimpleMazeView(MazeViewTemplate):
+
+    def move_agent(self, dir):
+        new_pos = self._agent_position + np.array(dir)
+        if 0 < new_pos[0]< len(self.maze_map)-1 and  0 < new_pos[1] < len(self.maze_map[0])-1:
+            if self.maze_map[new_pos[0]][new_pos[1]] != 0:
+                self._draw_agent(transparency=0)
+                self._draw_cell(self._agent_position)
+
+                self._agent_position += np.array(dir)
+
+                self._draw_agent(transparency=255)
+                self.update()
+                return True
+        
+        return False
+
+class ToroidalMazeView(MazeViewTemplate):
+
+    def move_agent(self, dir):
+        new_pos = self._agent_position + np.array(dir)
+        new_pos = (new_pos[0] % self.maze_size[0], new_pos[1] % self.maze_size[1])
+        if self.maze_map[new_pos[0]][new_pos[1]] != 0:
+            self._draw_agent(transparency=0)
+            self._draw_cell(self._agent_position)
+
+            self._agent_position += np.array(dir)
+
+            self._draw_agent(transparency=255)
+            self.update()
+            return True
+        
+        return False
+    

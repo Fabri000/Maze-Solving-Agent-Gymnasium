@@ -64,3 +64,9 @@ for test in test_loader:
     sim_avg += cos_sim
 
 print(f"average cosine similarity {sim_avg / len(test_loader)}")
+
+for test in test_loader:
+    embedding = loaded_model.encoder(test.float())
+    embedding =  (embedding - embedding.min()) / (embedding.max() - embedding.min() + 1e-8)
+    print(embedding)
+    break

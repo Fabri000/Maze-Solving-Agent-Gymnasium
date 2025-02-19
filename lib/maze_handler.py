@@ -16,6 +16,9 @@ def extract_submaze(maze,position:tuple[int,int],shape:int):
 
     row_start=row_end=col_start=col_end= -1
     
+    if shape  == maze_shape:
+        return maze
+    
     # Row boundary checks
     if position[0] - k >= 0 and position[0] + k < maze_shape:
         row_start = position[0] - k

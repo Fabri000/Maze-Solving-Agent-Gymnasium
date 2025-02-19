@@ -1,0 +1,4 @@
+from gymnasium_env.envs.simple_maze.maze_env import MazeEnv
+from gymnasium_env.envs.simple_maze.maze_env_enrich import EnrichMazeEnv
+from gymnasium_env.envs.simple_maze.variable_maze_env import VariableMazeEnv
+from gymnasium_env.envs.simple_maze.variable_maze_env_enrich import EnrichVariableMazeEnv

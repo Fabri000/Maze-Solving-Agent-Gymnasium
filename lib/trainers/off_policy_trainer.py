@@ -1,5 +1,5 @@
-from gymnasium_env.envs.maze_env import MazeEnv
-from gymnasium_env.envs.variable_maze_env import VariableMazeEnv
+from gymnasium_env.envs.simple_maze.variable_maze_env import VariableMazeEnv
+from gymnasium_env.envs.simple_maze.variable_maze_env_enrich import EnrichVariableMazeEnv
 
 from tqdm import tqdm
 
@@ -7,11 +7,11 @@ import torch
 import numpy as np
 
 class OffPolicyTrainer():
-    def __init__(self, env, agent,logger):
+    def __init__(self, env, agent, logger):
         self.env = env
         self.agent = agent
         self.logger = logger
-        self.is_maze_variable = isinstance(self.env.env, VariableMazeEnv) 
+        self.is_maze_variable = isinstance(self.env.env, VariableMazeEnv) or isinstance(self.env.env,EnrichVariableMazeEnv)
 
     def train(self,n_episodes:int):
         # reset the environment to get the first observation
@@ -126,7 +126,7 @@ class NeuralOffPolicyTrainer():
         self.env = env
         self.device = device
         self.logger = logger
-        self.is_maze_variable = isinstance(self.env.env, VariableMazeEnv) 
+        self.is_maze_variable = isinstance(self.env.env, VariableMazeEnv) or isinstance(self.env.env,EnrichVariableMazeEnv)
 
     def train(self,n_episodes:int):
         cum_rew = 0

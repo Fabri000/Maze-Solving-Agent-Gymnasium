@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-from gymnasium_env.envs.variable_maze_env import VariableMazeEnv
+from gymnasium_env.envs.simple_maze.variable_maze_env import VariableMazeEnv
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from agents.q_agent import QAgent
 from lib.logger_inizializer import init_logger

@@ -2,37 +2,31 @@ import heapq
 
 def heuristic(a, b):
     """
-    Calcola la distanza di Manhattan tra il punto a e il punto b.
+    Manhattan distance between two points.        
     """
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
     """
-    Esegue una ricerca A* limitata in profondità per trovare un percorso
-    da start a goal nel labirinto, senza superare max_depth passi.
+    Performs a depth-limited A* search to find a path from the start to the goal in the maze, without exceeding max_depth steps.
+
+    If the complete path to the goal is not found within the limit, the function still returns the path up to the node reached with the highest g value (i.e., the longest path explored).
+
+    Maze representation:
+    0 → wall (not traversable)
+    1 → walkable tile
+    2 → goal (traversable)
+        
+    Args:
+        maze (array):matrix representation of the array.
+        start (tuple): starting position.
+        goal (tuple o None): goal position. If None, find the position in the matrix associated to the value 2.
+        max_depth (int): max depth for the a* algorithm.
     
-    Se il percorso completo verso l'obiettivo non viene trovato entro il limite,
-    la funzione restituisce comunque il percorso fino al nodo raggiunto con il
-    valore massimo di g (ovvero il percorso più lungo effettuato).
-    
-    La rappresentazione del labirinto:
-      0 -> muro (non percorribile)
-      1 -> tessera percorribile
-      2 -> obiettivo (percorribile)
-    
-    Parametri:
-        maze (list of list di int): matrice 2D che rappresenta il labirinto.
-        start (tuple): posizione iniziale come (riga, colonna).
-        goal (tuple o None): posizione obiettivo come (riga, colonna). Se None,
-                              l'algoritmo cerca la cella con valore 2.
-        max_depth (int): numero massimo di passi (profondità) consentiti.
-    
-    Ritorna:
-        list: percorso (completo o parziale) da start a goal (o al nodo migliore raggiunto)
-              come lista di tuple (riga, colonna).
+    Returns:
+        list: path from start to goal if close enough, or a partial path.
     """
     rows, cols = len(maze), len(maze[0])
-
 
     # Inizializziamo la coda a priorità (open_set) e le strutture di supporto
     open_set = []

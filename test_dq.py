@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-from gymnasium_env.envs.maze_env import MazeEnv
+from gymnasium_env.envs.simple_maze.maze_env import MazeEnv
 from lib.maze_generation import gen_maze
 from agents.dq_agent import DQAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer

@@ -3,8 +3,8 @@ from typing import Optional
 import math
 import numpy as np
 
-from lib.maze_view import MazeView
-from lib.a_star import astar_limited_partial
+from lib.maze_view import MazeViewTemplate
+from lib.a_star_algos.a_star import astar_limited_partial
 from lib.maze_generation import gen_maze
 
 import gymnasium as gym
@@ -31,7 +31,7 @@ class MazeEnv(gym.Env):
         self._goal_pos = goal_pos
 
         if self.render_mode == "human":
-            self.maze_view = MazeView(self.maze_map,self._start_pos,self._goal_pos,(len(maze_map),len(maze_map[1])))
+            self.maze_view = MazeViewTemplate(self.maze_map,self._start_pos,self._goal_pos,(len(maze_map),len(maze_map[1])))
 
         self._agent_location = np.array(self._start_pos, dtype=np.int32)
         self._target_location = np.array(self._goal_pos, dtype=np.int32)

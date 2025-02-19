@@ -1,9 +1,9 @@
 import pygame
-from lib.maze_view import MazeView
+from lib.maze_view import MazeViewTemplate
 import numpy as np
 
 maze = [[0, 0, 0, 0, 0, 0, 0], [0, 1, 1, 1, 1, 1, 0], [0, 1, 0, 1, 0, 0, 0], [0, 1, 0, 1, 1, 1, 0], [0, 0, 0, 1, 0, 0, 0], [0, 1, 1, 1, 2, 1, 0], [0, 0, 0, 0, 0, 0, 0]]
-view = MazeView(maze,(1,1),(1,1),maze_size=(len(maze),len(maze[0])))
+view = MazeViewTemplate(maze,(1,1),(1,1),maze_size=(len(maze),len(maze[0])))
 
 ACTIONS = {           
             0: np.array([1, 0]),  # down
