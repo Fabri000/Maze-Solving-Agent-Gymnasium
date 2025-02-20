@@ -86,7 +86,6 @@ class MazeViewTemplate():
     def __draw_maze(self):
         if not self.enable_render:
             return
-    
         for i in range(self.maze_size[0]):
             for j in range(self.maze_size[1]):
                 x,y = j * MazeViewTemplate.TILE_SIZE, i * MazeViewTemplate.TILE_SIZE
@@ -189,7 +188,7 @@ class ToroidalMazeView(MazeViewTemplate):
             self._draw_agent(transparency=0)
             self._draw_cell(self._agent_position)
 
-            self._agent_position += np.array(dir)
+            self._agent_position = new_pos
 
             self._draw_agent(transparency=255)
             self.update()

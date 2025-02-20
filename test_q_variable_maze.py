@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-from gymnasium_env.envs.simple_maze.variable_maze_env import VariableMazeEnv
+from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from agents.q_agent import QAgent
 from lib.logger_inizializer import init_logger
@@ -12,7 +12,7 @@ eps_init = 1
 eps_end = 0.05
 eps_dec = n_episodes
 
-env = VariableMazeEnv(max_shape=maze_max_shape)
+env = SimpleVariableMazeEnv(max_shape=maze_max_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 agent = QAgent(
@@ -26,7 +26,7 @@ agent = QAgent(
 log_dir = "logs/variable_q_logs"
 logger = init_logger("Agent_log",log_dir)
 
-logger.info(f"Training starting on variable mazes with dimension variable between {VariableMazeEnv.START_SHAPE} and {maze_max_shape}")
+logger.info(f"Training starting on variable mazes with dimension variable between {SimpleVariableMazeEnv.START_SHAPE} and {maze_max_shape}")
 logger.debug(f"Hyperparameter of training: learning rate {lr} | initial epsilon {eps_init} | final epsilon {eps_end} | decay {eps_dec}")
 
 trainer = OffPolicyTrainer(env,agent,logger)

@@ -29,6 +29,24 @@ def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
 
     return start_point , maze
 
+def gen_maze_no_border(shape:tuple[int,int], algorithm:str="dfs"):
+    """
+    Create an array representation, without borders, of a maze created using different types of algortithm.
+    Args:
+        shape (tuple): shape, in a tuple format, of the result maze.
+        algorithm (str): algorithm to use for generation (currently supported "dfs" for deep first search and "r-prim" for random prim visit). Default: "dfs"
+    Returns:
+        tuple:
+         - start_point (tuple): the starting position for the agent.
+         - maze (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
+    """
+    extended_shape = (shape[0]+2,shape[1]+2)
+    start_point, maze = gen_maze(extended_shape,algorithm)
+
+    maze = [row[1:len(row)] for row in maze[1:len(maze)]]
+    start_point = (start_point[0]-1,start_point[1]-1)
+    return start_point , maze
+
 def random_prim_visit(maze,width:int,height:int,start_point:tuple[int,int]):
     """
     Algorithm that implement a random prim visit for generating a maze.
@@ -113,11 +131,10 @@ def find_random_position(maze, val:int, start_point:tuple[int,int]):
         return None
     
     chosed = random.choice(positions)
-    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) - max(len(maze),len(maze[0]))/2:
+    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) - max(len(maze),len(maze[0]))/2 and (chosed[0] == 0 or chosed[1] == 0 or chosed[0] == len(maze)-1 or chosed[1] == len(maze[0])-1):
         chosed = random.choice(positions)
 
     return chosed
-
 
 def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int):
     """

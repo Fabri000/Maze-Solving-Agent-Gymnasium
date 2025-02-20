@@ -1,5 +1,4 @@
-from gymnasium_env.envs.simple_maze.variable_maze_env import VariableMazeEnv
-from gymnasium_env.envs.simple_maze.variable_maze_env_enrich import EnrichVariableMazeEnv
+from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
 
 from tqdm import tqdm
 
@@ -11,7 +10,7 @@ class OffPolicyTrainer():
         self.env = env
         self.agent = agent
         self.logger = logger
-        self.is_maze_variable = isinstance(self.env.env, VariableMazeEnv) or isinstance(self.env.env,EnrichVariableMazeEnv)
+        self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv)
 
     def train(self,n_episodes:int):
         # reset the environment to get the first observation
@@ -45,7 +44,7 @@ class OffPolicyTrainer():
             win_status = "Win" if win else "Lost"
             if self.is_maze_variable:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | maze of shape {maze_size} | {win_status}')
-                if self.env.env.get_maze_shape() == self.env.env.max_shape:
+                if self.env.env.get_maze_shape() == self.env.env.get_max_shape():
                     self.logger.info(f'Episode {episode} hitted max shape of maze')
                     return
             else:
@@ -126,7 +125,7 @@ class NeuralOffPolicyTrainer():
         self.env = env
         self.device = device
         self.logger = logger
-        self.is_maze_variable = isinstance(self.env.env, VariableMazeEnv) or isinstance(self.env.env,EnrichVariableMazeEnv)
+        self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv)
 
     def train(self,n_episodes:int):
         cum_rew = 0

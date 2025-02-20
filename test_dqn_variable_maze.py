@@ -1,7 +1,7 @@
 import gymnasium as gym
 import torch
 
-from gymnasium_env.envs.simple_maze.variable_maze_env_enrich import EnrichVariableMazeEnv
+from gymnasium_env.envs.simple_variable_maze_env import SimpleEnrichVariableMazeEnv
 from lib.trainers.off_policy_trainer import NeuralOffPolicyTrainer
 from agents.dqn_agent import DQNAgent
 from lib.logger_inizializer import init_logger
@@ -10,7 +10,7 @@ import torch_directml
 
 
 maze_max_shape = (31,31)
-n_episodes = 250
+n_episodes = 25
 learning_rate=1e-3
 starting_epsilon=1
 final_epsilon=0.05
@@ -24,7 +24,7 @@ device = torch_directml.device()
 model = torch.load(f"weights/CAE_{(15,15)}.pth").to(device)
 encoder = model.encoder.to(device)
 
-env = EnrichVariableMazeEnv(max_shape=maze_max_shape,encoder=encoder)
+env = SimpleEnrichVariableMazeEnv(max_shape=maze_max_shape,encoder=encoder)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 agent = DQNAgent(env,learning_rate=1e-1,starting_epsilon=1,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,batch_size=batch_size,memory_size=10000,target_update_frequency=2,device=device)

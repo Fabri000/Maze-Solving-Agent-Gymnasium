@@ -1,9 +1,11 @@
 import pygame
-from lib.maze_view import MazeViewTemplate
+from lib.maze_generation import gen_maze_no_border
+from lib.maze_view import ToroidalMazeView
 import numpy as np
 
-maze = [[0, 0, 0, 0, 0, 0, 0], [0, 1, 1, 1, 1, 1, 0], [0, 1, 0, 1, 0, 0, 0], [0, 1, 0, 1, 1, 1, 0], [0, 0, 0, 1, 0, 0, 0], [0, 1, 1, 1, 2, 1, 0], [0, 0, 0, 0, 0, 0, 0]]
-view = MazeViewTemplate(maze,(1,1),(1,1),maze_size=(len(maze),len(maze[0])))
+start_pos,maze = gen_maze_no_border((15,15))
+print(len(maze),len(maze[0]))
+view = ToroidalMazeView(maze,start_pos,(0,0),maze_size=(len(maze),len(maze[0])))
 
 ACTIONS = {           
             0: np.array([1, 0]),  # down

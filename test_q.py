@@ -1,14 +1,12 @@
 import gymnasium as gym
 
-from gymnasium_env.envs.simple_maze.maze_env import MazeEnv
+from gymnasium_env.envs.simple_maze_env import SimpleMazeEnv
 from lib.maze_generation import gen_maze
 from agents.q_agent import QAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_size = (21,21)
-start_pos,maze = gen_maze(maze_size)
-win_pos = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == 2][-1]
+
 
 n_episodes = 100
 lr = 1e-3
@@ -16,7 +14,7 @@ eps_init = 1
 eps_end = 0.05
 eps_dec = n_episodes
 
-env = MazeEnv(maze,start_pos,win_pos)
+env = SimpleMazeEnv(maze_shape=(21,21))
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 
