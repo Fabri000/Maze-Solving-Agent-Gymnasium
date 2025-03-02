@@ -3,14 +3,14 @@ import gymnasium as gym
 from gymnasium import spaces
 import torch.nn as nn
 
-from gymnasium_env.envs.base_maze_env import BaseMazeEnv
+from gymnasium_env.envs.base_maze_env import BaseConstantSizeEnv
 from lib.maze_generation import gen_maze
 from lib.a_star_algos.a_star import astar_limited_partial
 from lib.maze_handler import extract_submaze, get_mask_tensor
 from lib.maze_view import SimpleMazeView
 
 
-class SimpleMazeEnv(BaseMazeEnv):
+class SimpleMazeEnv(BaseConstantSizeEnv):
     """
     A class representing an environment for a maze game.
     """

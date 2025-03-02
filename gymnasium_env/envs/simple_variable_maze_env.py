@@ -5,14 +5,14 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
-from gymnasium_env.envs.base_maze_env import BaseMazeEnv
+from gymnasium_env.envs.base_maze_env import BaseVariableSizeEnv
 from lib.maze_generation import gen_maze
 from lib.a_star_algos.a_star import astar_limited_partial
 from lib.maze_handler import extract_submaze, get_mask_tensor
 from lib.maze_view import SimpleMazeView
 
 
-class SimpleVariableMazeEnv(BaseMazeEnv):
+class SimpleVariableMazeEnv(BaseVariableSizeEnv):
     START_SHAPE = (15,15)
 
     def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
@@ -22,20 +22,20 @@ class SimpleVariableMazeEnv(BaseMazeEnv):
             max_shape (tuple): the maximum size of the maze.
             render_mode (str): the rendering mode. Default: "human".
         """
-
-        self.max_shape = max_shape
         self.render_mode = render_mode
+        self.max_shape = max_shape
 
         maze_shape = SimpleVariableMazeEnv.START_SHAPE
-        start_pos , maze_map= gen_maze(maze_shape)
+        start_pos, maze_map= gen_maze(maze_shape)
         goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze_map[r][c] == 2][0]
 
-        super().__init__(maze_map, start_pos, goal_pos,maze_shape)
+        super(SimpleVariableMazeEnv,self).__init__(maze_map, start_pos, goal_pos, maze_shape)
+
 
         if self.render_mode == "human":
             self.maze_view = SimpleMazeView(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         
-        self.mazes.append([self._start_pos, self.maze_shape,self.maze_map])
+        self.mazes.append([self._start_pos, self.maze_shape, self.maze_map])
         self.reset()
     
     def get_max_shape(self):
@@ -55,7 +55,7 @@ class SimpleVariableMazeEnv(BaseMazeEnv):
         Returns:
             list: the path to the goal.
         """
-        return astar_limited_partial(self.maze_map,source,self._goal_pos,max_depth=max_depth)
+        return astar_limited_partial(self.maze_map,source,tuple(self._target_location),max_depth=max_depth)
     
     def next_cell(self, agent_pos, dir):
         return tuple(agent_pos + SimpleVariableMazeEnv.ACTIONS[dir])
@@ -96,7 +96,6 @@ class SimpleVariableMazeEnv(BaseMazeEnv):
         Args:
             remove (bool): whether to remove the visited maze from the list of learned maze. Default: True."""
         self._start_pos, self.maze_shape,self.maze_map = self.mazes[self.next]
-
         if remove:
             self.mazes.remove([self._start_pos,self.maze_shape,self.maze_map])
         else:

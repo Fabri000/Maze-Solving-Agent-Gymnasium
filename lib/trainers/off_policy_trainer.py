@@ -1,27 +1,31 @@
-from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
-
 from tqdm import tqdm
-
 import torch
 import numpy as np
+
+from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
+from gymnasium_env.envs.toroidal_variable_maze_env import ToroidalVariableMazeEnv
 
 class OffPolicyTrainer():
     def __init__(self, env, agent, logger):
         self.env = env
         self.agent = agent
         self.logger = logger
-        self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv)
+        self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv) or isinstance(self.env.env, ToroidalVariableMazeEnv)
 
     def train(self,n_episodes:int):
         # reset the environment to get the first observation
         done = False
         maze_size =  (0,0)
+        count__episode = 0
+        
         for episode in tqdm(range(n_episodes)):
             obs, _ = self.env.reset()
             done = False
             cumulative = 0
             maze_size =  self.env.env.get_maze_shape()
             win = False
+            count__episode += 1
+
             # play one episode
             while not done:
                 action = self.agent.get_action(obs)
@@ -37,9 +41,6 @@ class OffPolicyTrainer():
                 win = terminated
 
                 obs = next_obs
-            
-            if win:
-                    self.env.env.update_maze()
 
             win_status = "Win" if win else "Lost"
             if self.is_maze_variable:
@@ -49,6 +50,11 @@ class OffPolicyTrainer():
                     return
             else:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | {win_status}')
+            
+            if win:
+                self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}')
+                count__episode = 0
+                self.env.env.update_maze()
 
         self.logger.info(f'End training')
     
@@ -115,7 +121,7 @@ class OffPolicyTrainer():
 
                     obs = next_obs
 
-                self.logger.info(f'Episode to learn to solve the maze {episode_count} | maze of shape {maze_size}')
+            self.logger.info(f'Episode to learn to solve the maze {episode_count} | maze of shape {maze_size}')
         self.logger.debug("End learning on already learned mazes")
         
 
@@ -125,11 +131,13 @@ class NeuralOffPolicyTrainer():
         self.env = env
         self.device = device
         self.logger = logger
-        self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv)
+        self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv) or isinstance(self.env.env, ToroidalVariableMazeEnv)
 
     def train(self,n_episodes:int):
         cum_rew = 0
-        maze_size = (0,0)
+        maze_size = None
+        count__episode = 0
+
         for episode in tqdm(range(n_episodes)):
             obs, _ = self.env.reset()
             done = False
@@ -138,6 +146,7 @@ class NeuralOffPolicyTrainer():
             total_loss = 0
             num_step = 0
             win = False
+            count__episode  += 1
 
             while not done:
                 num_step+=1
@@ -161,11 +170,9 @@ class NeuralOffPolicyTrainer():
 
                 if loss:
                     total_loss +=loss
-            
-            if win:
-                self.env.env.update_maze()
 
             result = "Win" if win else "Lost"
+
             if self.is_maze_variable:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size} | average loss {round(total_loss / num_step,4)}')
                 if self.env.env.get_maze_shape() == self.env.env.get_max_shape():
@@ -173,6 +180,11 @@ class NeuralOffPolicyTrainer():
                     return
             else:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | average loss {round(total_loss / num_step,4)}')
+            
+            if win:
+                self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}')
+                count__episode = 0
+                self.env.env.update_maze()
                 
             cum_rew = 0
             self.agent.scheduler_step()
@@ -185,10 +197,8 @@ class NeuralOffPolicyTrainer():
 
     def test(self,num_mazes:int):
         self.logger.info(f'Start of Testing')
-
         win = 0
         for i in range(num_mazes):
-            print(i)
             self.env.env.update_visited_maze()
                 
             obs, _ = self.env.reset()

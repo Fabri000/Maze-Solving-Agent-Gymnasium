@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 def extract_submaze(maze,position:tuple[int,int],shape:int):
     '''
@@ -43,6 +44,28 @@ def extract_submaze(maze,position:tuple[int,int],shape:int):
 
     ris = [row[col_start: col_end] for row in maze[row_start: row_end]]
     return ris 
+
+def extract_submaze_toroid(maze, position: tuple[int, int], shape: int):
+    '''
+    Extract a square window of a maze with toroidal topology.
+    Args:
+        maze (array): matrix representation of the maze.
+        position (tuple): the anchor position.
+        shape (int): shape of the window.
+    Returns:
+        window (array): extracted submaze.
+    '''
+    maze_shape = len(maze)
+    k = shape // 2
+    
+    if shape == maze_shape:
+        return maze
+    
+    rows = [(position[0] + i - k) % maze_shape for i in range(shape)]
+    cols = [(position[1] + i - k) % maze_shape for i in range(shape)]
+    
+    submaze = np.array([[maze[r][c] for c in cols] for r in rows])
+    return submaze
 
 def get_mask_tensor(maze):
     '''

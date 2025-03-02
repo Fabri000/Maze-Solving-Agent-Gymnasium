@@ -70,6 +70,5 @@ class QAgent:
         )
         self.training_error.append(temporal_difference)
 
-    
     def update_epsilon_decay(self,maze_shape, n_episodes:int):
         self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes

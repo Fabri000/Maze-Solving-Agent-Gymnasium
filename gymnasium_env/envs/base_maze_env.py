@@ -32,19 +32,11 @@ class BaseMazeEnv(gym.Env):
 
         self.maze_shape = maze_shape
         self._start_pos = start_pos
-        self._goal_pos = goal_pos
 
         self._agent_location = np.array(self._start_pos, dtype=np.int32)
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
-        self.observation_space = spaces.Dict(
-            {
-                "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
-                "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
-                "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int)
-            }
-        )
-
+        self.observation_space = None
         self.action_space = gym.spaces.Discrete(4)
         
         self.maze_view = None
@@ -165,28 +157,68 @@ class BaseMazeEnv(gym.Env):
 
         return self.maze_view.update(mode)
     
-    def _find_best_next_cell(self, agent_pos):
-        """
+    """def _find_best_next_cell(self, agent_pos):
+        """"""
         Find the best next cell for the agent.
         Args:
             agent_pos (tuple): the position of the agent.
         Returns:
             tuple: the best next cell for the agent.
-        """
+        """"""
         paths = []
         for dir in BaseMazeEnv.ACTIONS:
-            next_pos = self.next_cell(agent_pos,dir)#depends on type of maze
+            next_pos = self.next_cell(agent_pos,dir)
             if self.valid_cell(next_pos):
-                paths.append(self.find_path(next_pos,max_depth=min(self.maze_shape[0],self.maze_shape[1])))
-        best_dist = self.maze_shape[0]*self.maze_shape[1]
+                paths.append(self.find_path(next_pos,max_depth=2*min(self.maze_shape[0],self.maze_shape[1])))
+        best_dist = 1e6
         best_path = None
         for path in paths:
             dist_to_goal = len(self.find_path(path[-1]))
             if dist_to_goal < best_dist:
                 best_dist = dist_to_goal
                 best_path = path
-        return best_path[0]
+        return best_path[0]"""
     
+    
+    def _find_best_next_cell(self, agent_pos):
+        """
+        Find the best next cell for the agent, considering path length and tie-breaking heuristics.
+        
+        Args:
+            agent_pos (tuple): the position of the agent.
+        
+        Returns:
+            tuple or None: The best next cell for the agent, or None if no valid move exists.
+        """
+        best_next_cell = None
+        best_score = float("inf")  # Minimize path length + heuristic
+
+        for dir in BaseMazeEnv.ACTIONS:
+            next_pos = self.next_cell(agent_pos, dir)
+            if not self.valid_cell(next_pos):
+                continue
+
+            # Compute path using A* with limited depth
+            path = self.find_path(next_pos, max_depth=2 * min(self.maze_shape))
+
+            if path:
+                path_length = len(path)
+                goal_pos = tuple(self._target_location)
+                manhattan_dist = (abs(next_pos[0] - goal_pos[0])  + 
+                                abs(next_pos[1] - goal_pos[1]))  # Manhattan distance
+
+                score = path_length + 0.15 * manhattan_dist  # Weight Euclidean slightly to break ties
+
+                if score < best_score:  
+                    best_score = score
+                    best_next_cell = next_pos
+
+            # Early exit: If the next position is the goal, return immediately
+            if next_pos == tuple(self._target_location):
+                return next_pos
+
+        return best_next_cell
+
     def next_cell(self, agent_pos:tuple[int,int],dir:int):
         """
         Get the next cell for the agent.
@@ -233,3 +265,50 @@ class BaseMazeEnv(gym.Env):
         Update the maze.
         """
         raise NotImplementedError("Subclasses must implement update_maze")
+    
+class BaseConstantSizeEnv(BaseMazeEnv):
+    """
+    Template for a maze environment with constant size of the maze.
+    """
+
+    def __init__(self,maze_map,start_pos:tuple[int,int],goal_pos:tuple[int,int],maze_shape:tuple[int,int]):
+        """
+        Initialize the maze environment.
+        Args:
+            maze_map (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
+            start_pos (tuple): the starting position of the agent.
+            goal_pos (tuple): the goal position of the agent.
+            maze_shape (tuple): the shape of the maze.
+        """
+        super(BaseConstantSizeEnv, self).__init__(maze_map,start_pos,goal_pos,maze_shape)
+
+        self.observation_space = spaces.Dict(
+            {
+                "agent": gym.spaces.Box(low = np.array([0,0]), high= np.array(self.maze_shape),dtype=int),
+                "target": gym.spaces.Box(low = np.array([0,0]), high= np.array(self.maze_shape),shape=(2,),dtype=int),
+                "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int)
+            }
+        )
+
+class BaseVariableSizeEnv(BaseMazeEnv):
+    """
+    Template for a maze environment with variable size of the maze.
+    """
+    def __init__(self,maze_map,start_pos:tuple[int,int],goal_pos:tuple[int,int],maze_shape:tuple[int,int]):
+        """
+        Initialize the maze environment.
+        Args:
+            maze_map (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
+            start_pos (tuple): the starting position of the agent.
+            goal_pos (tuple): the goal position of the agent.
+            maze_shape (tuple): the shape of the maze.
+        """
+        super(BaseVariableSizeEnv, self).__init__(maze_map,start_pos,goal_pos,maze_shape)
+
+        self.observation_space = spaces.Dict(
+            {
+                "agent": gym.spaces.Box(low = np.array([0,0]), high= np.array(self.max_shape),dtype=int),
+                "target": gym.spaces.Box(low = np.array([0,0]), high= np.array(self.max_shape),dtype=int),
+                "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int)
+            }
+        )
