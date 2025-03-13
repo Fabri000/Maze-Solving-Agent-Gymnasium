@@ -3,7 +3,7 @@ import torch
 
 def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
     """
-    Create an array representation of a maze created using different types of algortithm.
+    Create an array representation of a maze created using different types of algorithm.
     Args:
         shape (tuple): shape, in a tuple format, of the result maze.
         algorithm (str): algorithm to use for generation (currently supported "dfs" for deep first search and "r-prim" for random prim visit). Default: "dfs"
@@ -47,48 +47,48 @@ def gen_maze_no_border(shape:tuple[int,int], algorithm:str="dfs"):
     start_point = (start_point[0]-1,start_point[1]-1)
     return start_point , maze
 
-def random_prim_visit(maze,width:int,height:int,start_point:tuple[int,int]):
+
+def random_prim_visit(maze, width: int, height: int, start_point: tuple[int, int]):
     """
-    Algorithm that implement a random prim visit for generating a maze.
+    Implements a randomized Prim's algorithm for maze generation.
+
     Args:
-        maze (array): the array that will contain the final maze representation.
-        width (int): width of the maze.
-        height (int): height of the final maze.
-        start_point (tuple): starting position for the prim visit.
+        maze (list of lists): The maze grid, initially filled with walls (0).
+        width (int): Width of the maze.
+        height (int): Height of the maze.
+        start_point (tuple): Starting position for the Prim's visit.
     """
-    frontier = []
-    for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
-        nx, ny = start_point[0] + dx, start_point[1] + dy
-        if 0 < nx < height - 1 and 0 < ny < width - 1:  # Avoid exit from the border
-            frontier.append((nx, ny))
+    
+    def get_neighbors(x, y):
+        """Returns valid neighbors (inside the maze and within bounds)."""
+        directions = [(-2, 0), (2, 0), (0, -2), (0, 2)]
+        return [(x + dx, y + dy) for dx, dy in directions if 0 <= x + dx < height and 0 <= y + dy < width]
+
+    # Initialize the maze: all walls (0)
+    maze[start_point[0]][start_point[1]] = 1  # Mark starting point as a path
+    frontier = set(get_neighbors(*start_point))  # Add neighboring cells to the frontier
     
     while frontier:
-        # randomizattion of next cell
-        fx, fy = random.choice(frontier)
-        frontier.remove((fx, fy))
-        
-        # find neighbor cell already explored
-        neighbors = []
-        for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
-            nx, ny = fx + dx, fy + dy
-            if 0 <= nx < height and 0 <= ny < width and maze[nx][ny] == 1:
-                neighbors.append((nx, ny))
+        fx, fy = random.choice(tuple(frontier))  # Pick a random frontier cell
+        frontier.remove((fx, fy))  # Remove it from the frontier
+
+        # Find neighbors that are already part of the maze
+        neighbors = [(nx, ny) for nx, ny in get_neighbors(fx, fy) if maze[nx][ny] == 1]
         
         if neighbors:
-            # randoom neighbor
+            # Choose a random neighbor that is part of the maze
             nx, ny = random.choice(neighbors)
-            
-            # Connect cells into frontier to the neighbor
+
+            # Remove the wall between the chosen frontier cell and its neighbor
             maze[fx][fy] = 1
-            maze[(fx + nx) // 2][(fy + ny) // 2] = 1  # remove wall
-            
-            # Add cell to frontier
-            for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
-                nx, ny = fx + dx, fy + dy
-                if 0 < nx < height - 1 and 0 < ny < width - 1 and maze[nx][ny] == 0:
-                    frontier.append((nx, ny))
+            maze[(fx + nx) // 2][(fy + ny) // 2] = 1  # Remove the wall between the two cells
 
+            # Add new valid frontier cells (neighbors of the current frontier cell)
+            for new_nx, new_ny in get_neighbors(fx, fy):
+                if maze[new_nx][new_ny] == 0:  # Only add unvisited cells to the frontier
+                    frontier.add((new_nx, new_ny))
 
+    return maze
 
 def deept_first_visit(maze, width:int, height:int, start_point:tuple[int,int]):
     """
@@ -102,16 +102,22 @@ def deept_first_visit(maze, width:int, height:int, start_point:tuple[int,int]):
     stack = [start_point]
     
     while stack:
-        x, y = stack.pop()
+        x, y = stack[-1]
         directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
         random.shuffle(directions)
-        
+        found = False
+
         for dx, dy in directions:
             nx, ny = x + 2 * dx, y + 2 * dy
-            if 0 < nx < height - 1 and 0 < ny < width - 1 and maze[nx][ny] == 0:
+            if 0 <= nx < height and 0 <= ny < width and maze[nx][ny] == 0:
                 maze[x + dx][y + dy] = 1
                 maze[nx][ny] = 1
                 stack.append((nx, ny))
+                found = True
+                break 
+
+        if not found:
+            stack.pop()
 
 
 def find_random_position(maze, val:int, start_point:tuple[int,int]):
@@ -124,15 +130,22 @@ def find_random_position(maze, val:int, start_point:tuple[int,int]):
     Returns:
         chosed (tuple): the position found with the value.
     """
-    positions = [(r, c) for r in range(len(maze)) for c in range(len(maze[0])) if maze[r][c] == val]
+    positions = [(r, c) for r in range(1,len(maze),2) for c in range(1,len(maze[0]),2) if maze[r][c] == val]
     positions.remove(start_point)
+
+    candidate = []
+    for position in positions:
+        i,j = position
+        neighbors =  sum(1 for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]if maze[i + dx][j + dy] != 0)
+        if neighbors == 1:
+            candidate.append(position)
 
     if not positions:
         return None
     
-    chosed = random.choice(positions)
-    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) - max(len(maze),len(maze[0]))/2 and (chosed[0] == 0 or chosed[1] == 0 or chosed[0] == len(maze)-1 or chosed[1] == len(maze[0])-1):
-        chosed = random.choice(positions)
+    chosed = random.choice(candidate)
+    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) ** 2 and (chosed[0] == 0 or chosed[1] == 0 or chosed[0] == len(maze)-1 or chosed[1] == len(maze[0])-1):
+        chosed = random.choice(candidate)
 
     return chosed
 
