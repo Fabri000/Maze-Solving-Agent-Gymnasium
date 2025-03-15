@@ -6,7 +6,7 @@ def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
     Create an array representation of a maze created using different types of algorithm.
     Args:
         shape (tuple): shape, in a tuple format, of the result maze.
-        algorithm (str): algorithm to use for generation (currently supported "dfs" for deep first search and "r-prim" for random prim visit). Default: "dfs"
+        algorithm (str): algorithm to use for generation (currently supported "dfs" for deep first search, "r-prim" for random prim visit and "prim&kill" for prim&kill visit). Default: "dfs"
     Returns:
         tuple:
          - start_point (tuple): the starting position for the agent.
@@ -23,11 +23,13 @@ def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
             random_prim_visit(maze,rows,columns,start_point)
         case "dfs":
             deept_first_visit(maze,rows,columns,start_point)
+        case "prim&kill":
+            prim_and_kill_visit(maze,rows,columns,start_point)
+    
+    goal_point = find_random_position(maze,1,start_point)
+    maze[goal_point[0]][goal_point[1]] = 2
 
-    win_pos = find_random_position(maze,1,start_point)
-    maze[win_pos[0]][win_pos[1]] = 2
-
-    return start_point , maze
+    return start_point , goal_point, maze
 
 def gen_maze_no_border(shape:tuple[int,int], algorithm:str="dfs"):
     """
@@ -119,6 +121,62 @@ def deept_first_visit(maze, width:int, height:int, start_point:tuple[int,int]):
         if not found:
             stack.pop()
 
+def prim_and_kill_visit(maze,width:int,height:int, start_point:tuple[int,int]):
+    """
+    Algorithm that implement the Prim&Kill visit described into the paper "How to generate perfect mazes?" by Bellot et al.
+    Args:
+        maze (array): the array that will contain the final maze representation.
+        width (int): width of the maze.
+        height (int): height of the final maze.
+        start_point (tuple): starting position for the prim visit.
+    """
+    size = (width,height)
+    unmarked = set([(i,j) for i in range(1,width,2) for j in range(1,height,2) if i%2 !=0 and i%2!=0])
+    for i,j in unmarked:
+        maze[i][j]=1
+    marked = set([start_point])
+    unmarked.discard(start_point)
+
+    current = start_point
+    maze[current[0]][current[1]]=1
+    unmarked,marked = random_walk(maze,unmarked,marked,current,size)
+
+    while len(unmarked)!=0:
+        current = random.choice(tuple([p for p in marked if len(set([(p[0] + dx, p[1] + dy) for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)] if 0 <= p[0] + dx < height and 0 <= p[1] + dy < width]).intersection(unmarked)) != 0]))
+        unmarked,marked = random_walk(maze,unmarked,marked,current,size)
+
+def random_walk(maze,unmarked,marked,current,size):
+    """
+    Do a randomi walk on the maze starting from current.
+    Args:
+        maze (array): the array representing the current maze
+        unmarked (array): contains the position not visited.
+        marked (array): contains the position already visited.
+        current (tuple[int,int]): the current position.
+        size (tuple[int,int]):size of the maze.
+    """
+    
+    width,height = size
+    neighbors = set([(current[0] + dx, current[1] + dy) for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)] if 0 <= current[0] + dx < height and 0 <= current[1] + dy < width])
+    inters = unmarked.intersection(neighbors) 
+    
+    while len(inters)!=0:
+
+        maze[current[0]][current[1]]=1
+
+        next = random.choice(tuple(inters))
+        wx,wy = (current[0] + ((next[0]-current[0]) // 2) , current[1]+((next[1]-current[1]) // 2))
+        maze[wx][wy]=1
+
+        current = next 
+        neighbors = set([(current[0] + dx, current[1] + dy) for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)] if 0 <= current[0] + dx < height and 0 <= current[1] + dy < width])
+        
+        unmarked.remove(current)
+        marked.add(current)
+        
+        inters = unmarked.intersection(neighbors)
+    
+    return  unmarked,marked
 
 def find_random_position(maze, val:int, start_point:tuple[int,int]):
     """

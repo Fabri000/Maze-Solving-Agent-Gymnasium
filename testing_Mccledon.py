@@ -29,21 +29,21 @@ print("difficulty ", c_e.difficulty_of_maze())
 print("complexity ", c_e.complexity_of_maze())"""
 
 
-difficulties = []
-complexities = []
 
 
-for i in range(20):
-    start_pos,maze = gen_maze((41,41))
-    maze_shape = (len(maze),len(maze[0]))
-    goal_pos = goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze[r][c] == 2][-1]
+for algo in ["dfs","r-prim","prim&kill"]:
+    difficulties = []
+    complexities = []
+    for i in range(20):
+        start_pos,goal_pos,maze = gen_maze((41,41),algo)
+        maze_shape = (len(maze),len(maze[0]))
 
-    c_e = ComplexityEvaluation(maze,start_pos,goal_pos)
+        c_e = ComplexityEvaluation(maze,start_pos,goal_pos)
 
-    difficulties.append(c_e.difficulty_of_maze())
-    complexities.append(c_e.complexity_of_maze())
+        difficulties.append(c_e.difficulty_of_maze())
+        complexities.append(c_e.complexity_of_maze())
 
-print("mean difficuly ", sum(difficulties)/len(difficulties))
-print("max difficulty ", max(difficulties) )
-print("mean complexity", sum(complexities)/len(complexities))
-
+    print("Algorithm ", algo)
+    print("mean difficuly ", sum(difficulties)/len(difficulties))
+    print("max difficulty ", max(difficulties) )
+    print("mean complexity", sum(complexities)/len(complexities))

@@ -31,13 +31,9 @@ goal_pos = goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_
 """
 
 
-"""start_pos,maze = gen_maze((15,15),"r-prim")
+start_pos,goal_pos,maze = gen_maze((15,15),"prim&kill")
 
-maze_shape = (len(maze),len(maze[0]))
-goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze[r][c] == 2][-1]"""
-
-
-maze = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+"""maze = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
  [0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
  [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0],
@@ -54,11 +50,11 @@ maze = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
 start_pos =1,1
-goal_pos = [(r, c) for r in range(15) for c in range(15) if maze[r][c] == 2][-1]
+goal_pos = [(r, c) for r in range(15) for c in range(15) if maze[r][c] == 2][-1]"""
 
 """sol_path = astar_limited_partial(maze,start_pos,goal_pos)"""
 
-view = SimpleMazeView(maze,start_pos,(0,0),maze_size=(len(maze),len(maze[0])))
+view = SimpleMazeView(maze,start_pos,goal_pos,maze_size=(len(maze),len(maze[0])))
 
 ACTIONS = {           
             0: np.array([1, 0]),  # down
