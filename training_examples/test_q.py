@@ -1,11 +1,17 @@
+import sys
+import os
 import gymnasium as gym
 
+# Get the absolute path to the root directory
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Add the root directory to sys.path
+sys.path.append(root_dir)
+
 from gymnasium_env.envs.simple_maze_env import SimpleMazeEnv
-from lib.maze_generation import gen_maze
 from agents.q_agent import QAgent
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from lib.logger_inizializer import init_logger
-
 
 
 n_episodes = 100

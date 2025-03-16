@@ -43,6 +43,7 @@ def extract_submaze(maze,position:tuple[int,int],shape:int):
         col_end = maze_shape
 
     ris = [row[col_start: col_end] for row in maze[row_start: row_end]]
+
     return ris 
 
 def extract_submaze_toroid(maze, position: tuple[int, int], shape: int):

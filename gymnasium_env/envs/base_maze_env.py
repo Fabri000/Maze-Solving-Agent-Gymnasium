@@ -41,7 +41,7 @@ class BaseMazeEnv(gym.Env):
         
         self.maze_view = None
 
-        self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1])
+        self.min_cum_rew = - (max(self.maze_shape[0],self.maze_shape[1]) *2)
         self.cum_rew = 0
         self.visited_cell = []
         self.consecutive_invalid_moves = 0
@@ -106,7 +106,7 @@ class BaseMazeEnv(gym.Env):
         Returns:
             tuple: the observation, reward, termination status, information of the environment.
         """
-        reward = 0
+        reward = 0.0
         terminated = False
         truncated = False
 
@@ -127,12 +127,12 @@ class BaseMazeEnv(gym.Env):
                     old_dist = len(self.find_path(tuple(prev_pos)))
                     reward = (old_dist - new_dist) * 0.5
             else:
-                reward = -1 + math.exp(- 0.1 * (self.visited_cell.count(current_cell)))
+                reward -= 1 - math.exp(- 0.085 * (self.visited_cell.count(current_cell)))
 
             self.visited_cell.append(current_cell)
         else:
             self.consecutive_invalid_moves += 1
-            reward = -1 + math.exp(- 0.15 * (self.consecutive_invalid_moves))
+            reward -= 1 - math.exp(- 0.09 * (self.consecutive_invalid_moves))
 
         observation = self._get_obs()
         info = self._get_info()
@@ -156,29 +156,6 @@ class BaseMazeEnv(gym.Env):
             self.maze_view.quit_game()
 
         return self.maze_view.update(mode)
-    
-    """def _find_best_next_cell(self, agent_pos):
-        """"""
-        Find the best next cell for the agent.
-        Args:
-            agent_pos (tuple): the position of the agent.
-        Returns:
-            tuple: the best next cell for the agent.
-        """"""
-        paths = []
-        for dir in BaseMazeEnv.ACTIONS:
-            next_pos = self.next_cell(agent_pos,dir)
-            if self.valid_cell(next_pos):
-                paths.append(self.find_path(next_pos,max_depth=2*min(self.maze_shape[0],self.maze_shape[1])))
-        best_dist = 1e6
-        best_path = None
-        for path in paths:
-            dist_to_goal = len(self.find_path(path[-1]))
-            if dist_to_goal < best_dist:
-                best_dist = dist_to_goal
-                best_path = path
-        return best_path[0]"""
-    
     
     def _find_best_next_cell(self, agent_pos):
         """

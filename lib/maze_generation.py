@@ -217,10 +217,10 @@ def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int):
         maze_set (array): set of generated mazes.
     """
     maze_set = []
-    algos = ["dfs","r-prim"]
+    algos = ["dfs","r-prim","prim&kill"]
     while len(maze_set) < num_mazes:
 
-        _, maze = gen_maze(shape, random.choice(algos))
+        _,_, maze = gen_maze(shape, random.choice(algos))
         
         maze_tensor = torch.tensor(maze)
         

@@ -26,11 +26,9 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         self.max_shape = max_shape
 
         maze_shape = SimpleVariableMazeEnv.START_SHAPE
-        start_pos, maze_map= gen_maze(maze_shape)
-        goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze_map[r][c] == 2][0]
+        start_pos,goal_pos, maze_map= gen_maze(maze_shape)
 
         super(SimpleVariableMazeEnv,self).__init__(maze_map, start_pos, goal_pos, maze_shape)
-
 
         if self.render_mode == "human":
             self.maze_view = SimpleMazeView(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
@@ -77,10 +75,9 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         shape = tuple(a+b for a,b in zip(self.maze_shape,(2,2)))
         if shape <= self.max_shape:
             self.maze_shape = shape
-            self.min_cum_rew = - min(self.maze_shape[0],self.max_shape[1])
+            self.min_cum_rew = - (max(self.maze_shape[0],self.max_shape[1]) * 2)
             
-            self._start_pos , self.maze_map= gen_maze(self.maze_shape)
-            goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
+            self._start_pos, goal_pos , self.maze_map= gen_maze(self.maze_shape)
             self._target_location = np.array(goal_pos, dtype=np.int32)
             self.mazes.append([self._start_pos,self.maze_shape,self.maze_map])
             
@@ -101,7 +98,7 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         else:
             self.next +=1
         
-        self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1])
+        self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1]) * 2
         goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
         self._target_location = np.array(goal_pos, dtype=np.int32)
         

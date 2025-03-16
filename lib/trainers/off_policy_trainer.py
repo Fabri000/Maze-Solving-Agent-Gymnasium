@@ -161,9 +161,6 @@ class NeuralOffPolicyTrainer():
                 done = terminated or truncated
                 win = terminated
 
-                if done and self.is_maze_variable:
-                    self.agent.update_epsilon_decay(self.env.env.get_maze_shape())
-
                 state = next_state
 
                 loss = self.agent.optimize_model()
@@ -185,6 +182,8 @@ class NeuralOffPolicyTrainer():
                 self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}')
                 count__episode = 0
                 self.env.env.update_maze()
+                if self.is_maze_variable:
+                    self.agent.update_epsilon_decay(self.env.env.maze_shape)
                 
             cum_rew = 0
             self.agent.scheduler_step()

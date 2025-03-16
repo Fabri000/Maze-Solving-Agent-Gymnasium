@@ -1,4 +1,5 @@
 import random
+import torch
 import numpy as np
 from collections import namedtuple, deque
 
@@ -30,6 +31,7 @@ class PrioritizedReplayMemory(object):
 
     def push(self,*args):
         self.memory.append(Transition(*args))
+        print(Transition(*args))
         max_priority = max(self.priorities, default=1.0)
         self.priorities.append(max_priority)
 

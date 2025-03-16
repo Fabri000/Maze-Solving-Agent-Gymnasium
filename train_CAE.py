@@ -4,6 +4,7 @@ import torch.utils.data.dataset as dataset
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.optim import lr_scheduler
 import torch_directml
 
 from lib.maze_generation import generate_collection_of_mazes
@@ -24,26 +25,28 @@ train_set, test_set = dataset.random_split(maze_set,[0.8,0.2])
 train_loader = DataLoader(train_set,1,shuffle=True)
 test_loader = DataLoader(test_set,1,shuffle=True)
 
-model = CAE(3,16).to(device)
+model = CAE(3,32).to(device)
 
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(),lr=1e-2)
+criterion = nn.BCEWithLogitsLoss()
+optimizer = optim.Adam(model.parameters(),lr=5e-3)
+scheduler = lr_scheduler.CosineAnnealingLR(optimizer,T_max=25,eta_min=1e-6)
 
-for epoch in range(10):
+for epoch in range(50):
 
     train_loss = 0.0
     for batch in train_loader:
-        
-        optimizer.zero_grad()
 
         output = model(batch.float())
 
         loss = criterion(output,batch.float())
-        loss.backward()
 
+        optimizer.zero_grad()
+        loss.backward()
         optimizer.step()
+        scheduler.step()
     
         train_loss += loss
+    
     
     train_loss = train_loss / len(train_loader)
     print(f"Epoch {epoch} total loss {train_loss}")
@@ -58,6 +61,7 @@ for test in test_loader:
 
     test_flat = test.cpu().view(1,-1).detach()
     out_flat= output.round().cpu().view(1,-1).detach()
+    
 
     cos_sim = F.cosine_similarity(test_flat, out_flat, dim=1)
 
@@ -68,5 +72,4 @@ print(f"average cosine similarity {sim_avg / len(test_loader)}")
 for test in test_loader:
     embedding = loaded_model.encoder(test.float())
     embedding =  (embedding - embedding.min()) / (embedding.max() - embedding.min() + 1e-8)
-    print(embedding)
     break

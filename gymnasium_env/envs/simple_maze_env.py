@@ -22,8 +22,7 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
             maze_shape (tuple): the size of the maze.
             render_mode (str): the rendering mode. Default: "human".
         """
-        start_pos,maze_map = gen_maze(maze_shape)
-        goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze_map[r][c] == 2][-1]
+        start_pos,goal_pos,maze_map = gen_maze(maze_shape)
 
         super(SimpleMazeEnv, self).__init__(maze_map, start_pos, goal_pos,maze_shape)
 
@@ -56,20 +55,19 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         Returns:
             list: the path to the goal.
         """
-        return astar_limited_partial(self.maze_map,source,self._goal_pos,max_depth=max_depth)
+        return astar_limited_partial(self.maze_map,source,tuple(self._target_location),max_depth=max_depth)
 
     def update_maze(self):
         """
         Update the maze.
         """
-        self._start_pos , self.maze_map = gen_maze(self.maze_shape)
+        self._start_pos , goal_pos ,self.maze_map = gen_maze(self.maze_shape)
 
-        self._goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
         self.mazes.append([self._start_pos,self.maze_map])
 
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.maze_shape)
+        self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
     
     def update_visited_maze(self, remove: bool = True):
@@ -79,16 +77,16 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
             remove (bool): whether to remove the visited cells. Default: True.
         """
         self._start_pos, self.maze_map = self.mazes[self.next]
+        goal_pos =  [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
 
         if remove:
             self.mazes.remove([self._start_pos,self.maze_map])
         else:
             self.next+=1
 
-        self._goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]    
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.maze_shape)
+        self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
     
 class SimpleEnrichMazeEnv(SimpleMazeEnv):

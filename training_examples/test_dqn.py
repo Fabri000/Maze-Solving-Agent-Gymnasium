@@ -1,20 +1,28 @@
+import sys
+import os
+
+# Get the absolute path to the root directory
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Add the root directory to sys.path
+sys.path.append(root_dir)
+
 import torch
 import torch_directml
 import gymnasium as gym
 
 from gymnasium_env.envs.simple_maze_env import SimpleEnrichMazeEnv
-from lib.maze_generation import gen_maze
 from agents.dqn_agent import DQNAgent
 from lib.trainers.off_policy_trainer import NeuralOffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_shape = (23,23)
+maze_shape = (17,17)
 device = torch_directml.device()
 
 model = torch.load(f"weights/CAE_{(15,15)}.pth").to(device)
 encoder = model.encoder.to(device)
 
-n_episodes = 10
+n_episodes = 250
 learning_rate=1e-3
 starting_epsilon=1
 final_epsilon=0.05

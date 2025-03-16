@@ -20,8 +20,10 @@ class DQN(nn.Module):
         self.model =nn.Sequential(
             nn.Linear(n_observations,hidden_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(hidden_dim,hidden_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(hidden_dim,n_actions)
         )
     
@@ -29,7 +31,7 @@ class DQN(nn.Module):
         y = self.model(x)
         return y
     
-class DQNAgent():
+class DDQNAgent():
     def __init__(self,
         env,
         learning_rate:float,
@@ -97,11 +99,13 @@ class DQNAgent():
         action_batch = torch.tensor(batch.action).unsqueeze(1).to(device)
         reward_batch = torch.tensor(batch.reward).to(device)
 
-
         state_action_values = self.source_net(state_batch).gather(1, action_batch)
 
         next_state_values = torch.zeros(self.batch_size, device=self.device)
-        next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
+
+        best_actions = self.source_net(non_final_next_states).max(1)[1].unsqueeze(1)
+
+        next_state_values[non_final_mask] = self.target_net(non_final_next_states).gather(1,best_actions).squeeze(1).detach()
 
         expected_state_action_values = (next_state_values * self.discount_factor) + reward_batch
 
@@ -131,7 +135,6 @@ class DQNAgent():
 
     def update_target(self):
         self.target_net.load_state_dict(self.source_net.state_dict()) 
-    
     
     def update_epsilon_decay(self,maze_shape):
         self.epsilon_decay = 0.15 * maze_shape[0] * maze_shape[0]

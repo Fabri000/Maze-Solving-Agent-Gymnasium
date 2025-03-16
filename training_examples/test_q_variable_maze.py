@@ -1,4 +1,9 @@
+import os
+import sys
 import gymnasium as gym
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
 
 from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
 
