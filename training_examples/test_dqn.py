@@ -16,24 +16,21 @@ from agents.dqn_agent import DQNAgent
 from lib.trainers.off_policy_trainer import NeuralOffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_shape = (17,17)
+maze_shape = (51,51)
 device = torch_directml.device()
-
-model = torch.load(f"weights/CAE_{(15,15)}.pth").to(device)
-encoder = model.encoder.to(device)
 
 n_episodes = 250
 learning_rate=1e-3
-starting_epsilon=1
+starting_epsilon=0.98
 final_epsilon=0.05
-epsilon_decay=1250
+epsilon_decay= maze_shape[0]*maze_shape[1]*4
 discount_factor=0.99
 batch_size=128
 
-env = SimpleEnrichMazeEnv(maze_shape,encoder)
+env = SimpleEnrichMazeEnv(maze_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
-agent = DQNAgent(env,learning_rate=1e-3,starting_epsilon=starting_epsilon,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,batch_size=batch_size,memory_size=10000,target_update_frequency=2,device=device)
+agent = DQNAgent(env,learning_rate=learning_rate,starting_epsilon=starting_epsilon,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,batch_size=batch_size,memory_size=10000,target_update_frequency=2,device=device)
 
 log_dir = "logs/dqn_logs"
 logger = init_logger("Agent_log",log_dir)

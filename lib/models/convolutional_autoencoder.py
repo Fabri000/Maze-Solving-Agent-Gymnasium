@@ -15,20 +15,21 @@ class CAE(nn.Module):
         super(CAE,self).__init__()
 
         self.encoder = nn.Sequential(
-            Conv2d(in_channels,h_channels,kernel_size=2,stride=2),
+            Conv2d(in_channels,h_channels,kernel_size=3,stride=1),
             ReLU(),
             MaxPool2d(2,2),
-            Conv2d(h_channels, h_channels // 2,kernel_size=3,stride=1,padding=1),
+            Conv2d(h_channels, h_channels,kernel_size=3,stride=1),
             ReLU(),
         )
 
-        self.decoder = nn.Sequential(
-            ConvTranspose2d(h_channels // 2, h_channels,kernel_size=3,stride=2),
-            ReLU(),
-            ConvTranspose2d(h_channels,in_channels,kernel_size=3,stride=2,padding=1,output_padding=2),
-            Sigmoid()
+        self.decoder =  nn.Sequential(
+            nn.ConvTranspose2d(h_channels, h_channels, kernel_size=3, stride=1, output_padding=0),  # Inverting Conv2
+            nn.ReLU(),
+            nn.ConvTranspose2d(h_channels, in_channels, kernel_size=2, stride=2, output_padding=0),  # Inverting MaxPool
+            nn.ReLU(),
+            nn.ConvTranspose2d(in_channels, in_channels, kernel_size=3, stride=1, output_padding=1),  # Inverting Conv1
+            nn.ReLU()
         )
-
 
     def forward(self,x):
         """
@@ -36,4 +37,5 @@ class CAE(nn.Module):
             x (torch.Tensor): input tensor for the network
         """
         feature = self.encoder(x)
-        return self.decoder(feature)
+        out = self.decoder(feature)
+        return out 

@@ -44,7 +44,13 @@ def extract_submaze(maze,position:tuple[int,int],shape:int):
 
     ris = [row[col_start: col_end] for row in maze[row_start: row_end]]
 
-    return ris 
+    # Compute the corresponding position in the original maze
+    player_position = (
+        position[0] - row_start,
+        position[1] - col_start
+    )
+
+    return ris , player_position
 
 def extract_submaze_toroid(maze, position: tuple[int, int], shape: int):
     '''
@@ -68,12 +74,12 @@ def extract_submaze_toroid(maze, position: tuple[int, int], shape: int):
     submaze = np.array([[maze[r][c] for c in cols] for r in rows])
     return submaze
 
-def get_mask_tensor(maze):
+def get_mask_tensor(maze,position):
     '''
     Generate a tensor containing the mask for the given maze.
-
     Args:
         maze
+        position
     Returns:
         torch.tensor
     '''
@@ -83,7 +89,10 @@ def get_mask_tensor(maze):
     goal_mask = (maze_tensor == 2).int() # goal is represented by a 2 in the matrix representation
     tile_mask = (maze_tensor == 1).int() # tiles are represented by a 1 in the matrix representation)
     wall_mask = (maze_tensor == 0).int() # walls are represented by a 0 in the matrix representation)
+
+    player_mask = torch.zeros_like(maze_tensor, dtype=torch.int32)
+    player_mask[position[0]][position[1]]=1
     
-    final_tensor = torch.stack([wall_mask,tile_mask,goal_mask])
+    final_tensor = torch.stack([wall_mask,tile_mask,player_mask,goal_mask])
     
     return final_tensor.float()

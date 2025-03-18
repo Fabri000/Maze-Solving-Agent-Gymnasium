@@ -22,16 +22,17 @@ for i in range(len(maze_set)):
 
 train_set, test_set = dataset.random_split(maze_set,[0.8,0.2])
 
-train_loader = DataLoader(train_set,1,shuffle=True)
-test_loader = DataLoader(test_set,1,shuffle=True)
+train_loader = DataLoader(train_set,4,shuffle=True)
+test_loader = DataLoader(test_set,4,shuffle=True)
 
-model = CAE(3,32).to(device)
+model = CAE(4,32).to(device)
+model.train()
 
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(),lr=5e-3)
 scheduler = lr_scheduler.CosineAnnealingLR(optimizer,T_max=25,eta_min=1e-6)
 
-for epoch in range(50):
+for epoch in range(25):
 
     train_loss = 0.0
     for batch in train_loader:
@@ -41,19 +42,19 @@ for epoch in range(50):
         loss = criterion(output,batch.float())
 
         optimizer.zero_grad()
+
         loss.backward()
         optimizer.step()
-        scheduler.step()
     
         train_loss += loss
     
-    
     train_loss = train_loss / len(train_loader)
+    scheduler.step()
     print(f"Epoch {epoch} total loss {train_loss}")
 
-torch.save(model,f"weights/CAE_{shape}.pth")
+torch.save(model,f"weights/CAE{shape}.pth")
 
-loaded_model = torch.load(f"weights/CAE_{shape}.pth").to(device)
+loaded_model = torch.load(f"weights/CAE{shape}.pth").to(device)
 
 sim_avg = 0
 for test in test_loader:
@@ -69,7 +70,5 @@ for test in test_loader:
 
 print(f"average cosine similarity {sim_avg / len(test_loader)}")
 
-for test in test_loader:
-    embedding = loaded_model.encoder(test.float())
-    embedding =  (embedding - embedding.min()) / (embedding.max() - embedding.min() + 1e-8)
-    break
+
+torch.save(model.encoder,f"weights/FeatureExtractor_{shape}.pth")

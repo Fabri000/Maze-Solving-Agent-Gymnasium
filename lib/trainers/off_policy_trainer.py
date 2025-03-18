@@ -4,6 +4,7 @@ import numpy as np
 
 from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
 from gymnasium_env.envs.toroidal_variable_maze_env import ToroidalVariableMazeEnv
+from lib.maze_difficulty_evaluation.maze_complexity_evaluation import ComplexityEvaluation
 
 class OffPolicyTrainer():
     def __init__(self, env, agent, logger):
@@ -42,6 +43,7 @@ class OffPolicyTrainer():
 
                 obs = next_obs
 
+            
             win_status = "Win" if win else "Lost"
             if self.is_maze_variable:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | maze of shape {maze_size} | {win_status}')
@@ -142,7 +144,7 @@ class NeuralOffPolicyTrainer():
             obs, _ = self.env.reset()
             done = False
             maze_size =  self.env.env.get_maze_shape()
-            state = torch.tensor(np.concatenate([obs[k] for k in obs], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
+            state = (torch.tensor(np.concatenate([obs[k] for k in obs.keys() if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), obs['window'].to(self.device).unsqueeze(0))
             total_loss = 0
             num_step = 0
             win = False
@@ -154,11 +156,12 @@ class NeuralOffPolicyTrainer():
                 next_obs, reward, truncated, terminated, _ = self.env.step(action.item())
                 cum_rew +=reward
                 
-                next_state = torch.tensor(np.concatenate([next_obs[k] for k in next_obs], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
-
-                self.agent.memorize(state,action,next_state,reward)
+                next_state = (torch.tensor(np.concatenate([next_obs[k] for k in next_obs if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), obs['window'].to(self.device).unsqueeze(0))
 
                 done = terminated or truncated
+
+                self.agent.add(state,action,next_state,reward,done)
+                
                 win = terminated
 
                 state = next_state
@@ -167,23 +170,25 @@ class NeuralOffPolicyTrainer():
 
                 if loss:
                     total_loss +=loss
-
             result = "Win" if win else "Lost"
 
             if self.is_maze_variable:
-                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size} | average loss {round(total_loss / num_step,4)}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size}')
                 if self.env.env.get_maze_shape() == self.env.env.get_max_shape():
                     self.logger.info(f'Episode {episode} hitted max shape of maze')
                     return
             else:
-                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | average loss {round(total_loss / num_step,4)}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | ')
             
             if win:
-                self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}')
+                c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
+                self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size} | maze difficulty {c_e.difficulty_of_maze()}')
                 count__episode = 0
                 self.env.env.update_maze()
                 if self.is_maze_variable:
-                    self.agent.update_epsilon_decay(self.env.env.maze_shape)
+                    self.agent.update_epsilon_decay()
+                    c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
+                    self.logger.debug(f'Learning new maze| maze of shape {maze_size} | maze difficulty {c_e.difficulty_of_maze()}')
                 
             cum_rew = 0
             self.agent.scheduler_step()

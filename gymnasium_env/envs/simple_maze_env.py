@@ -91,7 +91,7 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
     
 class SimpleEnrichMazeEnv(SimpleMazeEnv):
 
-    def __init__(self,maze_shape:tuple[int,int],encoder:nn.Sequential,render_mode:str="human"):
+    def __init__(self,maze_shape:tuple[int,int],render_mode:str="human"):
         """
         Initialize the maze environment.
         Args:
@@ -99,7 +99,6 @@ class SimpleEnrichMazeEnv(SimpleMazeEnv):
             render_mode (str): the rendering mode. Default: "human".
         """
 
-        self.encoder = encoder
         super(SimpleEnrichMazeEnv, self).__init__(maze_shape,render_mode)
 
         self.observation_space = spaces.Dict(
@@ -107,18 +106,17 @@ class SimpleEnrichMazeEnv(SimpleMazeEnv):
                 "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                 "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                "window_feature": gym.spaces.Box(-1,1,shape=(72,),dtype=float),
+                "window": gym.spaces.Box(-1,1,shape=(4,15,15),dtype=float)
             }
         )
 
     def _get_obs(self):
-        sub_maze = extract_submaze(self.maze_map,self._agent_location,15)
-        feature = self.encoder(get_mask_tensor(sub_maze)).flatten().detach()
-        feature = (feature - feature.min()) / (feature.max() - feature.min() + 1e-8)
-
+        sub_maze,position = extract_submaze(self.maze_map,self._agent_location,15)
+        mask = get_mask_tensor(sub_maze,position)
+        
         return {"agent": self._agent_location, 
                 "target": self._target_location,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
-                "window_feature": feature
+                "window": mask
                 }
     

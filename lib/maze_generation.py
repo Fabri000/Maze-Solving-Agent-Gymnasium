@@ -10,6 +10,7 @@ def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
     Returns:
         tuple:
          - start_point (tuple): the starting position for the agent.
+         - goal point (tuple): the goal position.
          - maze (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
     """
     rows,columns = shape
@@ -220,15 +221,17 @@ def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int):
     algos = ["dfs","r-prim","prim&kill"]
     while len(maze_set) < num_mazes:
 
-        _,_, maze = gen_maze(shape, random.choice(algos))
+        start_poin,_, maze = gen_maze(shape, random.choice(algos))
         
         maze_tensor = torch.tensor(maze)
         
         goal_mask = (maze_tensor == 2).int() # goal is represented by a 2 in the matrix representation
         tile_mask = (maze_tensor == 1).int() # tiles are represented by a 1 in the matrix representation)
         wall_mask = (maze_tensor == 0).int() # walls are represented by a 0 in the matrix representation)
+        player_mask = torch.zeros_like(maze_tensor, dtype=torch.int32)
+        player_mask[start_poin[0]][start_poin[1]]=1
         
-        final_tensor = torch.stack([wall_mask,tile_mask,goal_mask])
+        final_tensor = torch.stack([wall_mask,tile_mask,player_mask,goal_mask])
 
         if not any(torch.equal(final_tensor, maze) for maze in maze_set):
             maze_set.append(final_tensor)

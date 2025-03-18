@@ -45,13 +45,13 @@ class ComplexityEvaluation:
         self.G = nx.Graph()
         self.init_graph_repr(maze,start_pos,goal_pos)
 
-        labels = {}
+        """labels = {}
         for n in self.G.nodes:
             labels[n] = inverse_cantor_pairing(n)
         nx.draw(self.G,labels,labels=labels,with_labels = True)
         edge_labels = nx.get_edge_attributes(self.G,"d")
         nx.draw_networkx_edge_labels(self.G,labels, edge_labels = edge_labels)
-        plt.savefig('maze.png')
+        plt.savefig('maze.png')"""
 
     
     def init_graph_repr(self,maze,start_pos,goal_pos):

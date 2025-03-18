@@ -41,7 +41,7 @@ class BaseMazeEnv(gym.Env):
         
         self.maze_view = None
 
-        self.min_cum_rew = - (max(self.maze_shape[0],self.maze_shape[1]) *2)
+        self.max_steps_taken = (self.maze_shape[0] * self.maze_shape[1]) // 2
         self.cum_rew = 0
         self.visited_cell = []
         self.consecutive_invalid_moves = 0
@@ -93,6 +93,7 @@ class BaseMazeEnv(gym.Env):
         info = self._get_info()
 
         self.cum_rew = 0
+        self.steps_taken = 0
         self.consecutive_invalid_moves = 0
         self.visited_cell= []
 
@@ -127,7 +128,7 @@ class BaseMazeEnv(gym.Env):
                     old_dist = len(self.find_path(tuple(prev_pos)))
                     reward = (old_dist - new_dist) * 0.5
             else:
-                reward -= 1 - math.exp(- 0.085 * (self.visited_cell.count(current_cell)))
+                reward -= 1 - math.exp(- 0.15 * (self.visited_cell.count(current_cell)))
 
             self.visited_cell.append(current_cell)
         else:
@@ -138,7 +139,8 @@ class BaseMazeEnv(gym.Env):
         info = self._get_info()
         
         self.cum_rew += reward
-        if self.cum_rew < self.min_cum_rew:
+        self.steps_taken+=1
+        if self.steps_taken > self.max_steps_taken:
             truncated = True
 
         if truncated or terminated:

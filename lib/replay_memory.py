@@ -20,38 +20,55 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
-    
-class PrioritizedReplayMemory(object):
 
-    def __init__(self,capacity:int,alpha:float,epsilon:float):
-        self.memory = deque([],maxlen=capacity)
-        self.priorities = deque([],maxlen=capacity)
+class PrioritizedReplayBuffer:
+    def __init__(self, capacity, alpha=0.6):
+        self.capacity = capacity
         self.alpha = alpha
-        self.epsilon = epsilon
+        self.buffer = []
+        self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.position = 0
 
-    def push(self,*args):
-        self.memory.append(Transition(*args))
-        print(Transition(*args))
-        max_priority = max(self.priorities, default=1.0)
-        self.priorities.append(max_priority)
+    def add(self, state, action, reward, next_state, done):
+        max_prio = self.priorities.max() if self.buffer else 1.0
 
-    def sample(self,batch_size, beta = 0.4):
-        priorities = np.array(self.priorities,dtype= np.float32)
-        p = priorities ** self.alpha
-        p /= np.sum(p)
+        if len(self.buffer) < self.capacity:
+            self.buffer.append((state, action, reward, next_state, done))
+        else:
+            self.buffer[self.position] = (state, action, reward, next_state, done)
 
-        indexs = np.random.choice(len(self.memory),batch_size,p=p)
-        samples = [self.memory[index] for index in indexs]
-
-        total = len(self.memory)
-        weights = (total * p[indexs]) ** (-beta)
-        weights /= weights.max()
-
-        return samples,indexs,np.array(weights, dtype=np.float32)
+        self.priorities[self.position] = max_prio
+        self.position = (self.position + 1) % self.capacity
     
-    def update_priorities(self,indexs,deltas):
-        for idx, delta in zip(indexs,deltas):
-            self.priorities[idx] = delta+ self.epsilon
+    
+    def sample(self, batch_size, beta=0.4):
+        if len(self.buffer) == self.capacity:
+            prios = self.priorities
+        else:
+            prios = self.priorities[:self.position]
 
-    def __len__(self):
-        return len(self.memory)
+        probs = prios ** self.alpha
+        probs /= probs.sum()
+
+        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
+        samples = [self.buffer[idx] for idx in indices]
+
+        total = len(self.buffer)
+        weights = (total * probs[indices]) ** (-beta)
+        weights /= weights.max()
+        weights = np.array(weights, dtype=np.float32)
+
+        batch = list(zip(*samples))
+
+        states = torch.tensor(np.array(batch[0]))
+        actions = torch.tensor(np.array(batch[1]))
+        rewards = torch.tensor(np.array(batch[2]))
+        next_states = torch.tensor(np.array(batch[3]))
+        dones = torch.tensor(np.array(batch[4]))
+
+        return states, actions, rewards, next_states, dones, indices, weights
+    
+
+    def update_priorities(self, batch_indices, batch_priorities):
+        for idx, prio in zip(batch_indices, batch_priorities):
+            self.priorities[idx] = prio

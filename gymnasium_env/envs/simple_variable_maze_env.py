@@ -111,9 +111,7 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
     obtained supplying it to a convolutional encoder.
     
     """
-    def __init__(self,max_shape:tuple[int,int],encoder:nn.Sequential,render_mode:str="human"):
-
-        self.encoder = encoder
+    def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
         super(SimpleEnrichVariableMazeEnv, self).__init__(max_shape,render_mode)
 
         self.observation_space = spaces.Dict(
@@ -121,7 +119,7 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
                 "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                 "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                "window_feature": gym.spaces.Box(-1,1,shape=(72,),dtype=float),
+                "window": gym.spaces.Box(-1,1,shape=(3,15,15),dtype=float),
             }
         )
 
@@ -129,11 +127,9 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
         sub_maze = extract_submaze(self.maze_map,self._agent_location,15)
 
         mask = get_mask_tensor(sub_maze)
-        feature = self.encoder(mask).flatten().detach()
-        feature = (feature - feature.min()) / (feature.max() - feature.min() + 1e-8)
 
         return {"agent": self._agent_location, 
                 "target": self._target_location,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
-                "window_feature": feature
+                "window": mask
         }
