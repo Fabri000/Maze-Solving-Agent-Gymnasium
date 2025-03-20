@@ -21,11 +21,9 @@ class ToroidalMazeEnv(BaseConstantSizeEnv):
             maze_shape (tuple): the size of the maze.
             render_mode (str): the rendering mode. Default: "human".
         """
-
         self.render_mode = render_mode
 
-        start_pos, maze_map = gen_maze_no_border(maze_shape)
-        goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze_map[r][c] == 2][-1]
+        start_pos, goal_pos, maze_map = gen_maze_no_border(maze_shape)
 
         super(ToroidalMazeEnv, self).__init__(maze_map, start_pos, goal_pos,maze_shape)
 
@@ -70,10 +68,10 @@ class ToroidalMazeEnv(BaseConstantSizeEnv):
         else:
             self.next+=1
 
-        self._goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]    
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
+        goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.maze_shape)
+        self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
     
     def update_maze(self):
@@ -82,12 +80,12 @@ class ToroidalMazeEnv(BaseConstantSizeEnv):
         """
         self._start_pos , self.maze_map = gen_maze_no_border(self.maze_shape)
 
-        self._goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
+        goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
         self.mazes.append([self._start_pos,self.maze_map])
 
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.maze_shape)
+        self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
 
 class ToroidalEnrichMazeEnv(ToroidalMazeEnv):
@@ -96,8 +94,7 @@ class ToroidalEnrichMazeEnv(ToroidalMazeEnv):
         can have variable sizes. It adds to the observation feature extracted by a Convolutional Encoder
         on a fixed size window.
         """
-        def __init__(self,max_shape:tuple[int,int],encoder:nn.Sequential,render_mode:str="human"):
-            self.encoder = encoder
+        def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
             super(ToroidalEnrichMazeEnv, self).__init__(max_shape,render_mode)
 
             self.observation_space = spaces.Dict(
@@ -105,18 +102,16 @@ class ToroidalEnrichMazeEnv(ToroidalMazeEnv):
                     "agent": gym.spaces.Box(low = np.array([0,0]), high= np.array(self.maze_shape),dtype=int),
                     "target": gym.spaces.Box(low = np.array([0,0]), high= np.array(self.maze_shape),dtype=int),
                     "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                    "window_feature": gym.spaces.Box(-1,1,shape=(72,),dtype=float),
+                    "window": gym.spaces.Box(-1,1,shape=(3,15,15),dtype=float)
                 }
             )
         
         def _get_obs(self):
             sub_maze = extract_submaze_toroid(self.maze_map,self._agent_location,15)
             mask = get_mask_tensor(sub_maze)
-            feature = self.encoder(mask).flatten().detach()
-            feature = (feature - feature.min()) / (feature.max() - feature.min() + 1e-8)
 
             return {"agent": self._agent_location, 
                     "target": self._target_location,
                     "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
-                    "window_feature": feature
+                    "window": mask
             }

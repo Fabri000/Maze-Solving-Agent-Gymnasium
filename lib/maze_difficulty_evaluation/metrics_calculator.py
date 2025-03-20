@@ -15,11 +15,15 @@ class MetricsCalulator:
         self.goal = [(r, c) for r in range(self.maze_size[0]) for c in range( self.maze_size[1]) if  self.maze[r][c] == 2][0]
         self.CE = (self.maze_size[0]-1) * (( self.maze_size[1]-1)//2) - 1
 
+    def calculate_density(self):
+        "It calculates the density of the maze w.r.t the number of walkable cells in relation to the size of the maze."
+        return sum(1 for r in range(self.maze_size[0]) for c in range(self.maze_size[1]) if self.maze[r][c] != 0) / (self.maze_size[0] * self.maze_size[1])
+
     def calculate_L(self,path):
         """It calculates the lenght of a path in relation to the number of cells in the maze
         Args:
             path (list): the path to evaluate."""
-        return  self.sol_path_length/self.CE
+        return  len(path)/self.CE
     
     def calculate_T(self,path):
         """It calculates the number of turns in a path in relation to the number of cells in the  solution path

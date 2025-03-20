@@ -126,7 +126,7 @@ class BaseMazeEnv(gym.Env):
                 else:
                     new_dist = len(self.find_path(current_cell))
                     old_dist = len(self.find_path(tuple(prev_pos)))
-                    reward = (old_dist - new_dist) * 0.5
+                    reward = (old_dist - new_dist) * 0.5 - 0.05
             else:
                 reward -= 1 - math.exp(- 0.15 * (self.visited_cell.count(current_cell)))
 
@@ -169,16 +169,17 @@ class BaseMazeEnv(gym.Env):
         Returns:
             tuple or None: The best next cell for the agent, or None if no valid move exists.
         """
-        best_next_cell = None
+        best_next_cell = agent_pos
         best_score = float("inf")  # Minimize path length + heuristic
 
         for dir in BaseMazeEnv.ACTIONS:
+            
             next_pos = self.next_cell(agent_pos, dir)
             if not self.valid_cell(next_pos):
                 continue
 
             # Compute path using A* with limited depth
-            path = self.find_path(next_pos, max_depth=2 * min(self.maze_shape))
+            path = self.find_path(next_pos, max_depth= 2 * min(self.maze_shape[0],self.maze_shape[1]))
 
             if path:
                 path_length = len(path)
@@ -195,7 +196,7 @@ class BaseMazeEnv(gym.Env):
             # Early exit: If the next position is the goal, return immediately
             if next_pos == tuple(self._target_location):
                 return next_pos
-
+            
         return best_next_cell
 
     def next_cell(self, agent_pos:tuple[int,int],dir:int):

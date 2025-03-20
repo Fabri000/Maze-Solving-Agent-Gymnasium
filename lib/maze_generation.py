@@ -1,5 +1,6 @@
 import random
 import torch
+from lib.a_star_algos.a_star import astar_limited_partial
 
 def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
     """
@@ -13,7 +14,7 @@ def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
          - goal point (tuple): the goal position.
          - maze (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
     """
-    rows,columns = shape
+    rows,columns = (shape[0]+2,shape[1]+2)
     maze = [[0 for _ in range(rows)] for _ in range(columns)]
     
     start_point= (random.randrange(1, rows - 1, 2), random.randrange(1, columns - 1, 2))
@@ -44,11 +45,11 @@ def gen_maze_no_border(shape:tuple[int,int], algorithm:str="dfs"):
          - maze (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
     """
     extended_shape = (shape[0]+2,shape[1]+2)
-    start_point, maze = gen_maze(extended_shape,algorithm)
+    start_point, goal_point, maze = gen_maze(extended_shape,algorithm)
 
     maze = [row[1:len(row)] for row in maze[1:len(maze)]]
     start_point = (start_point[0]-1,start_point[1]-1)
-    return start_point , maze
+    return start_point, goal_point, maze
 
 
 def random_prim_visit(maze, width: int, height: int, start_point: tuple[int, int]):
@@ -192,19 +193,23 @@ def find_random_position(maze, val:int, start_point:tuple[int,int]):
     positions = [(r, c) for r in range(1,len(maze),2) for c in range(1,len(maze[0]),2) if maze[r][c] == val]
     positions.remove(start_point)
 
-    candidate = []
+    candidates = []
     for position in positions:
         i,j = position
         neighbors =  sum(1 for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]if maze[i + dx][j + dy] != 0)
         if neighbors == 1:
-            candidate.append(position)
+            candidates.append(position)
 
     if not positions:
         return None
     
-    chosed = random.choice(candidate)
-    while abs(chosed[0]-start_point[0])+abs(chosed[1]-start_point[1]) < max(len(maze),len(maze[0])) ** 2 and (chosed[0] == 0 or chosed[1] == 0 or chosed[0] == len(maze)-1 or chosed[1] == len(maze[0])-1):
-        chosed = random.choice(candidate)
+    chosed = candidates[0]
+    max_dist = len(astar_limited_partial(maze,start_point,chosed))
+    for candidate in candidates:
+        dist_candidate = len(astar_limited_partial(maze,start_point,candidate))
+        if dist_candidate > max_dist:
+            chosed = candidate
+            max_dist = dist_candidate
 
     return chosed
 

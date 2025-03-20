@@ -29,10 +29,9 @@ class ToroidalVariableMazeEnv(BaseVariableSizeEnv):
         self.render_mode = render_mode
         
         maze_shape = ToroidalVariableMazeEnv.START_SHAPE
-        start_pos, maze_map = gen_maze_no_border(maze_shape)
-        goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze_map[r][c] == 2][-1]
+        start_pos, goal_pos, maze_map = gen_maze_no_border(maze_shape)
 
-        super(ToroidalVariableMazeEnv, self).__init__(maze_map,start_pos, goal_pos, maze_shape)
+        super(ToroidalVariableMazeEnv, self).__init__(maze_map,start_pos,goal_pos,maze_shape)
 
         if render_mode == "human":
             self.maze_view = ToroidalMazeView(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
@@ -77,11 +76,10 @@ class ToroidalVariableMazeEnv(BaseVariableSizeEnv):
         shape = tuple(a+b for a,b in zip(self.maze_shape,(2,2)))
         if shape <= self.max_shape:
             self.maze_shape = shape
-            self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1])
+            self.max_steps_taken = (self.maze_shape[0] * self.maze_shape[1]) // 2
             
-            self._start_pos , self.maze_map = gen_maze_no_border(self.maze_shape)
+            self._start_pos, goal_pos, self.maze_map = gen_maze_no_border(self.maze_shape)
 
-            goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
             self._target_location = np.array(goal_pos, dtype=np.int32)
 
             self.mazes.append([self._start_pos,self.maze_shape,self.maze_map])
@@ -104,11 +102,11 @@ class ToroidalVariableMazeEnv(BaseVariableSizeEnv):
         else:
             self.next+=1
 
-        self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1])
-        self._goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]    
-        self._target_location = np.array(self._goal_pos, dtype=np.int32)
+        self.max_steps_taken = (self.maze_shape[0] * self.maze_shape[1]) // 2
+        goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]    
+        self._target_location = np.array(goal_pos, dtype=np.int32)
 
-        self.maze_view.update_maze(self.maze_map,self._start_pos,self._goal_pos,self.maze_shape)
+        self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
     
 class ToroidalEnrichVariableMazeEnv(ToroidalVariableMazeEnv):
@@ -117,8 +115,7 @@ class ToroidalEnrichVariableMazeEnv(ToroidalVariableMazeEnv):
         can have variable sizes. It adds to the observation feature extracted by a Convolutional Encoder
         on a fixed size window.
         """
-        def __init__(self,max_shape:tuple[int,int],encoder:nn.Sequential,render_mode:str="human"):
-            self.encoder = encoder
+        def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
             super(ToroidalEnrichVariableMazeEnv, self).__init__(max_shape,render_mode)
 
             self.observation_space = spaces.Dict(
@@ -126,18 +123,16 @@ class ToroidalEnrichVariableMazeEnv(ToroidalVariableMazeEnv):
                     "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                     "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                     "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                    "window_feature": gym.spaces.Box(-1,1,shape=(72,),dtype=float),
+                    "window": gym.spaces.Box(-1,1,shape=(3,15,15),dtype=float)
                 }
             )
         
         def _get_obs(self):
-            sub_maze = extract_submaze_toroid(self.maze_map,self._agent_location,15)
-            mask = get_mask_tensor(sub_maze)
-            feature = self.encoder(mask).flatten().detach()
-            feature = (feature - feature.min()) / (feature.max() - feature.min() + 1e-8)
+            sub_maze,position = extract_submaze_toroid(self.maze_map,self._agent_location,15)
+            mask = get_mask_tensor(sub_maze,position)
 
             return {"agent": self._agent_location, 
                     "target": self._target_location,
                     "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
-                    "window_feature": feature
+                    "window": mask
             }

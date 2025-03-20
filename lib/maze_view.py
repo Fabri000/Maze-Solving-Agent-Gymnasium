@@ -18,7 +18,7 @@ class MazeViewTemplate():
         self.game_over = False
         self.enable_render = enable_render
         
-        self.maze_size = maze_size
+        self.maze_size = (maze_size[0]+2,maze_size[1]+2)
         self.window_size = tuple([x*MazeViewTemplate.TILE_SIZE for x in reversed(self.maze_size)])
         self.maze_map = maze_map
 
@@ -57,7 +57,7 @@ class MazeViewTemplate():
         self.start_position = start_position
         self._agent_position = self.start_position
         self.goal_position = goal_position
-        self.maze_size = maze_size
+        self.maze_size = (maze_size[0]+2,maze_size[1]+2)
 
         self.window_size = tuple([x*MazeViewTemplate.TILE_SIZE for x in reversed(self.maze_size)])
         

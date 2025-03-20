@@ -13,7 +13,8 @@ from lib.maze_view import SimpleMazeView
 
 
 class SimpleVariableMazeEnv(BaseVariableSizeEnv):
-    START_SHAPE = (15,15)
+    START_SHAPE = (17,17)
+    ALGORITHM = "r-prim"
 
     def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
         """
@@ -26,7 +27,7 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         self.max_shape = max_shape
 
         maze_shape = SimpleVariableMazeEnv.START_SHAPE
-        start_pos,goal_pos, maze_map= gen_maze(maze_shape)
+        start_pos,goal_pos, maze_map= gen_maze(maze_shape, SimpleVariableMazeEnv.ALGORITHM)
 
         super(SimpleVariableMazeEnv,self).__init__(maze_map, start_pos, goal_pos, maze_shape)
 
@@ -75,9 +76,9 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         shape = tuple(a+b for a,b in zip(self.maze_shape,(2,2)))
         if shape <= self.max_shape:
             self.maze_shape = shape
-            self.min_cum_rew = - (max(self.maze_shape[0],self.max_shape[1]) * 2)
+            self.max_steps_taken = (self.maze_shape[0] * self.maze_shape[1]) // 2
             
-            self._start_pos, goal_pos , self.maze_map= gen_maze(self.maze_shape)
+            self._start_pos, goal_pos, self.maze_map= gen_maze(self.maze_shape,SimpleVariableMazeEnv.ALGORITHM)
             self._target_location = np.array(goal_pos, dtype=np.int32)
             self.mazes.append([self._start_pos,self.maze_shape,self.maze_map])
             
@@ -98,7 +99,7 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         else:
             self.next +=1
         
-        self.min_cum_rew = - min(self.maze_shape[0],self.maze_shape[1]) * 2
+        self.max_steps_taken = (self.maze_shape[0] * self.maze_shape[1]) // 2
         goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
         self._target_location = np.array(goal_pos, dtype=np.int32)
         
@@ -111,6 +112,8 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
     obtained supplying it to a convolutional encoder.
     
     """
+    WINDOW_DIM = 15
+
     def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
         super(SimpleEnrichVariableMazeEnv, self).__init__(max_shape,render_mode)
 
@@ -124,9 +127,9 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
         )
 
     def _get_obs(self):
-        sub_maze = extract_submaze(self.maze_map,self._agent_location,15)
+        sub_maze, player_position = extract_submaze(self.maze_map,self._agent_location,SimpleEnrichVariableMazeEnv.WINDOW_DIM)
 
-        mask = get_mask_tensor(sub_maze)
+        mask = get_mask_tensor(sub_maze,player_position)
 
         return {"agent": self._agent_location, 
                 "target": self._target_location,

@@ -44,7 +44,7 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         Returns:
             bool: whether the cell is valid.
         """
-        return 0<pos[0]<self.maze_shape[0] and 0<pos[1]<self.maze_shape[1] and self.maze_map[pos[0]][pos[1]]
+        return 0<pos[0]<self.maze_shape[0] and 0<pos[1]<self.maze_shape[1] and self.maze_map[pos[0]][pos[1]]!=0
     
     def find_path(self,source:tuple[int,int],max_depth:int=1e6):
         """

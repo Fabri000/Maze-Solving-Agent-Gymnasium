@@ -158,10 +158,9 @@ class NeuralOffPolicyTrainer():
                 
                 next_state = (torch.tensor(np.concatenate([next_obs[k] for k in next_obs if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), obs['window'].to(self.device).unsqueeze(0))
 
-                done = terminated or truncated
+                self.agent.memorize(state,action,reward,next_state)
 
-                self.agent.add(state,action,next_state,reward,done)
-                
+                done = terminated or truncated
                 win = terminated
 
                 state = next_state
@@ -170,6 +169,7 @@ class NeuralOffPolicyTrainer():
 
                 if loss:
                     total_loss +=loss
+           
             result = "Win" if win else "Lost"
 
             if self.is_maze_variable:
@@ -186,7 +186,7 @@ class NeuralOffPolicyTrainer():
                 count__episode = 0
                 self.env.env.update_maze()
                 if self.is_maze_variable:
-                    self.agent.update_epsilon_decay()
+                    self.agent.update_steps_done()
                     c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
                     self.logger.debug(f'Learning new maze| maze of shape {maze_size} | maze difficulty {c_e.difficulty_of_maze()}')
                 
