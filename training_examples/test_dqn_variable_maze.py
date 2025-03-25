@@ -24,13 +24,14 @@ from lib.logger_inizializer import init_logger
 import torch_directml
 
 
-maze_max_shape = (31,31)
+maze_max_shape = (83,83)
 n_episodes = 500
 learning_rate=1e-3
 starting_epsilon=0.95
 final_epsilon=0.05
 epsilon_decay= maze_max_shape[0]*maze_max_shape[1]*4
-discount_factor=0.99
+discount_factor=0.5
+eta = 1e-2
 batch_size=128
 
 device = torch_directml.device()
@@ -38,7 +39,7 @@ device = torch_directml.device()
 env = SimpleEnrichVariableMazeEnv(max_shape=maze_max_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
-agent = DQNAgent(env,learning_rate=learning_rate,starting_epsilon=starting_epsilon,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,batch_size=batch_size,memory_size=10000,target_update_frequency=3,device=device)
+agent = DQNAgent(env,learning_rate=learning_rate,starting_epsilon=starting_epsilon,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,eta=eta,batch_size=batch_size,memory_size=10000,target_update_frequency=3,device=device)
 
 logger = init_logger("Agent_log","logs/variable_dqn_logs")
 logger.info(f"Training starting on variable mazes with dimension variable between {(15,15)} and {maze_max_shape}")
@@ -50,3 +51,8 @@ logger.debug(f'Learning new maze| maze of shape {env.env.maze_shape} | maze diff
 trainer = NeuralOffPolicyTrainer(agent,env,device,logger)
 
 trainer.train(n_episodes)
+
+logger.info("Checking if the agent remember how to solve maze already seen")
+trainer.test(len(env.env.mazes),new = False)
+logger.info(f'Start testing on new mazes')
+trainer.test(15, new = True)

@@ -4,6 +4,9 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
+from lib.maze_difficulty_evaluation.maze_complexity_evaluation import ComplexityEvaluation
+from lib.maze_generation import gen_maze
+
 
 class BaseMazeEnv(gym.Env):
     """
@@ -11,6 +14,8 @@ class BaseMazeEnv(gym.Env):
     """
 
     metadata = {'render.modes': ['human', 'rgb_array'],"render_fps": 4}
+
+    ALGORITHM = "r-prim"
 
     ACTIONS = {           
             0: np.array([1, 0]),  # down
@@ -28,6 +33,7 @@ class BaseMazeEnv(gym.Env):
             goal_pos (tuple): the goal position of the agent.
             maze_shape (tuple): the shape of the maze.
         """
+
         self.maze_map = maze_map
 
         self.maze_shape = maze_shape
@@ -41,13 +47,45 @@ class BaseMazeEnv(gym.Env):
         
         self.maze_view = None
 
-        self.max_steps_taken = (self.maze_shape[0] * self.maze_shape[1]) // 2
+        self.max_steps_taken = (self.maze_shape[1] + self.maze_shape[0])*3
         self.cum_rew = 0
         self.visited_cell = []
         self.consecutive_invalid_moves = 0
         self.mazes = []
         self.next = 0
+
+    def set_algorithm(self,algorithm:str):
+        BaseMazeEnv.ALGORITHM = algorithm
     
+    def get_algorithm(self):
+        return BaseMazeEnv.ALGORITHM
+    
+    def generate_maze(self,maze_shape:tuple[int,int]):
+        """
+        Generate a new maze.
+        Args:
+            maze_shape (tuple): the shape of the maze.
+        """
+        start_pos,goal_pos,maze_map = gen_maze(maze_shape,BaseMazeEnv.ALGORITHM)
+        difficulty = ComplexityEvaluation(maze_map,start_pos,goal_pos).difficulty_of_maze()
+
+        for _ in range(5):
+            tmp_start_pos,tmp_goal_pos,tmp_maze_map = gen_maze(maze_shape,BaseMazeEnv.ALGORITHM)
+            tmp_difficulty = ComplexityEvaluation(tmp_maze_map,tmp_start_pos,tmp_goal_pos).difficulty_of_maze() 
+            if tmp_difficulty > difficulty:
+                start_pos,goal_pos,maze_map = tmp_start_pos,tmp_goal_pos,tmp_maze_map
+                difficulty = tmp_difficulty
+        
+        return start_pos,goal_pos,maze_map
+
+    def get_maze_difficulty(self):
+        """
+        Get the difficulty of the maze.
+        Returns:
+            float: the difficulty of the maze.
+        """
+        return ComplexityEvaluation(self.maze_map,self._start_pos,tuple(self._target_location)).difficulty_of_maze()
+
     def get_maze_shape(self):
         """
         Get the shape of the maze.
@@ -62,7 +100,7 @@ class BaseMazeEnv(gym.Env):
         Returns:
             dict: the observation of the environment.
         """
-        return {"agent": self._agent_location, "target": self._target_location,"best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
+        return {"agent": self._agent_location, "best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
     
     def _get_info(self):
         """

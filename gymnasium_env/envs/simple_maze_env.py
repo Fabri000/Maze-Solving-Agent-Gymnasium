@@ -4,7 +4,6 @@ from gymnasium import spaces
 import torch.nn as nn
 
 from gymnasium_env.envs.base_maze_env import BaseConstantSizeEnv
-from lib.maze_generation import gen_maze
 from lib.a_star_algos.a_star import astar_limited_partial
 from lib.maze_handler import extract_submaze, get_mask_tensor
 from lib.maze_view import SimpleMazeView
@@ -20,11 +19,11 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         Initialize the maze environment.
         Args:
             maze_shape (tuple): the size of the maze.
-            render_mode (str): the rendering mode. Default: "human".
-        """
-        start_pos,goal_pos,maze_map = gen_maze(maze_shape)
+            render_mode (str): the rendering mode. Default: "human"."""
+        
+        start_pos,goal_pos,maze_map = self.generate_maze(maze_shape)
 
-        super(SimpleMazeEnv, self).__init__(maze_map, start_pos, goal_pos,maze_shape)
+        super(SimpleMazeEnv, self).__init__(maze_map,start_pos,goal_pos,maze_shape)
 
         if render_mode == "human":
             self.maze_view = SimpleMazeView(maze_map,start_pos,goal_pos,maze_shape)
@@ -61,7 +60,7 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         """
         Update the maze.
         """
-        self._start_pos , goal_pos ,self.maze_map = gen_maze(self.maze_shape)
+        self._start_pos,goal_pos,self.maze_map = self.generate_maze(self.maze_shape)
 
         self._target_location = np.array(goal_pos, dtype=np.int32)
 
@@ -89,6 +88,13 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
     
+    def update_new_maze(self):
+        self._start_pos, goal_pos, self.maze_map = self.generate_maze(self.maze_shape)
+        self._target_location = np.array(goal_pos, dtype=np.int32)
+
+        self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
+        self.reset()
+    
 class SimpleEnrichMazeEnv(SimpleMazeEnv):
 
     def __init__(self,maze_shape:tuple[int,int],render_mode:str="human"):
@@ -104,7 +110,6 @@ class SimpleEnrichMazeEnv(SimpleMazeEnv):
         self.observation_space = spaces.Dict(
             {
                 "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
-                "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
                 "window": gym.spaces.Box(-1,1,shape=(4,15,15),dtype=float)
             }
@@ -114,9 +119,7 @@ class SimpleEnrichMazeEnv(SimpleMazeEnv):
         sub_maze,position = extract_submaze(self.maze_map,self._agent_location,15)
         mask = get_mask_tensor(sub_maze,position)
         
-        return {"agent": self._agent_location, 
-                "target": self._target_location,
+        return {"agent": self._agent_location,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
-                "window": mask
-                }
+                "window": mask}
     

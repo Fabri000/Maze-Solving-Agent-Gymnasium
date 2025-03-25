@@ -11,12 +11,12 @@ from lib.trainers.off_policy_trainer import OffPolicyTrainer
 from agents.q_agent import QAgent
 from lib.logger_inizializer import init_logger
 
-maze_max_shape=(251,251)
-n_episodes = 1500
-lr = 1e-2
+maze_max_shape=(151,151)
+n_episodes = 500
+lr = 1e-3
 eps_init = 1
 eps_end = 0.05
-eps_dec = n_episodes * 8
+eps_dec = n_episodes * 4
 
 env = SimpleVariableMazeEnv(max_shape=maze_max_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
@@ -26,7 +26,7 @@ agent = QAgent(
     learning_rate=lr,
     initial_epsilon=eps_init,
     final_epsilon=eps_end,
-    epsilon_decay= 150,
+    epsilon_decay= eps_dec,
 )
 
 log_dir = "logs/variable_q_logs"
@@ -38,5 +38,7 @@ logger.debug(f"Hyperparameter of training: learning rate {lr} | initial epsilon 
 trainer = OffPolicyTrainer(env,agent,logger)
 
 trainer.train(n_episodes)
-
-trainer.test(len(env.env.mazes))
+logger.info("Checking if the agent remember how to solve maze already seen")
+trainer.test(len(env.env.mazes),new = False)
+logger.info(f'Start testing on new mazes')
+trainer.test(15, new = True)

@@ -21,10 +21,7 @@ gamma = 0.99
 
 device = torch_directml.device()
 
-model = torch.load(f"weights/CAE_{(15,15)}.pth").to(device)
-encoder = model.encoder.to(device)
-
-env = SimpleEnrichMazeEnv(maze_size,encoder)
+env = SimpleEnrichMazeEnv(maze_size)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 

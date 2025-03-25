@@ -14,7 +14,7 @@ def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
          - goal point (tuple): the goal position.
          - maze (array): the array representation of the maze where 0 represent walls, 1 the walkable tiles and 2 the goal.
     """
-    rows,columns = (shape[0]+2,shape[1]+2)
+    rows,columns = (shape[0],shape[1])
     maze = [[0 for _ in range(rows)] for _ in range(columns)]
     
     start_point= (random.randrange(1, rows - 1, 2), random.randrange(1, columns - 1, 2))

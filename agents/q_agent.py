@@ -13,7 +13,8 @@ class QAgent:
         initial_epsilon: float,
         epsilon_decay: float,
         final_epsilon: float,
-        discount_factor: float = 0.95,
+        discount_factor: float,
+        eta: float
     ):
         """Initialize a Reinforcement Learning agent with an empty dictionary
         of state-action values (q_values), a learning rate and an epsilon.
@@ -30,6 +31,7 @@ class QAgent:
 
         self.lr = learning_rate
         self.discount_factor = discount_factor
+        self.eta = eta
 
         self.initial_epsilon=initial_epsilon
         self.epsilon_decay = epsilon_decay
@@ -70,5 +72,11 @@ class QAgent:
         )
         self.training_error.append(temporal_difference)
 
-    def update_epsilon_decay(self,maze_shape, n_episodes:int):
-        self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes
+    def update_steps_done(self):
+        self.steps_done = self.steps_done // 4
+
+    def update_hyperparameter(self,is_better:bool):
+        if is_better:
+            self.discount_factor = self.discount_factor + self.eta
+        else:
+            self.discount_factor = self.discount_factor- self.eta

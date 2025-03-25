@@ -10,7 +10,8 @@ class DQAgent:
         initial_epsilon: float,
         epsilon_decay: float,
         final_epsilon: float,
-        gamma: float = 0.95,): #discount factor
+        gamma: float,
+        eta:float): #discount factor
  
         self.env = env
         self.q_a_values = defaultdict(lambda: np.zeros(self.env.action_space.n))
@@ -25,6 +26,7 @@ class DQAgent:
         self.epsilon = initial_epsilon
 
         self.gamma = gamma
+        self.eta = eta
 
         self.steps_done = 0
 
@@ -63,5 +65,11 @@ class DQAgent:
 
         self.training_error.append(td_error)
 
-    def update_epsilon_decay(self,maze_shape, n_episodes:int):
-        self.epsilon_decay = 0.25 * maze_shape[0] * maze_shape[0] * n_episodes     
+    def update_steps_done(self):
+        self.steps_done = self.steps_done // 4
+
+    def update_hyperparameter(self,is_better:bool):
+        if is_better:
+            self.gamma = self.gamma + self.eta
+        else:
+            self.gamma = self.gamma - self.eta

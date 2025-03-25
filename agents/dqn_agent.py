@@ -19,30 +19,30 @@ Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state'
 class DQN(nn.Module):
     WINDOW_SIZE=(15,15)
 
-    def __init__(self,in_channels:int,n_actions:int,h_channels:int,hidden_dim:int=128):
+    def __init__(self,in_channels:int,n_observations:int,n_actions:int,h_channels:int,hidden_dim:int=1024):
         super(DQN,self).__init__()
 
         self.in_channels = in_channels
 
         self.conv =nn.Sequential(
-            Conv2d(in_channels,h_channels,kernel_size=3,stride=1),
+            Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
             ReLU(),
             MaxPool2d(2,2),
-            Conv2d(h_channels, h_channels,kernel_size=3,stride=1),
+            Conv2d(h_channels, h_channels*2,kernel_size=3,stride=1,padding=1),
             ReLU(),
+            MaxPool2d(2,2),
         )
 
-        input_dim = self.get_conv_size(DQN.WINDOW_SIZE)+6
+        input_dim = self.get_conv_size(DQN.WINDOW_SIZE)+n_observations
 
         self.fc =nn.Sequential(
             nn.Linear(input_dim,hidden_dim),
             nn.ReLU(),
             nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,hidden_dim),
+            nn.Linear(hidden_dim,hidden_dim//2),
             nn.ReLU(),
             nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,n_actions),
-            nn.Softmax()
+            nn.Linear(hidden_dim//2,n_actions)
         )
 
         self.conv.train()
@@ -67,6 +67,7 @@ class DQNAgent():
         final_epsilon: float,
         epsilon_decay: float,
         discount_factor: float,
+        eta:float,
         batch_size:int,
         memory_size:int,
         target_update_frequency:int,
@@ -78,17 +79,22 @@ class DQNAgent():
 
         #parameters
         self.learning_rate = learning_rate
+        self.beta = -0.001
         self.starting_epsilon = starting_epsilon
         self.final_epsilon = final_epsilon
         self.epsilon_decay = epsilon_decay
         self.discount_factor = discount_factor
         self.batch_size = batch_size
         self.target_update_frequency = target_update_frequency
+        self.eta = eta
 
         n_actions = env.action_space.n
 
-        self.source_net = DQN(4,n_actions,32).to(device)
-        self.target_net = DQN(4,n_actions,32).to(device)
+        observation, _ = env.reset()
+        n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))
+
+        self.source_net = DQN(4,n_observations,n_actions,16).to(device)
+        self.target_net = DQN(4,n_observations,n_actions,16).to(device)
 
         self.memory = ReplayMemory(memory_size)
 
@@ -105,7 +111,7 @@ class DQNAgent():
         self.steps_done += 1
         
         if sample < epsilon_threshold:
-            return torch.tensor([[random.randrange(2)]], device=self.device, dtype=torch.long)
+            return torch.tensor(self.env.action_space.sample(), device=self.device, dtype=torch.long)
         else:
             with torch.no_grad():
                 return F.softmax(self.source_net(state)).max(1)[1].view(1, 1)
@@ -161,5 +167,12 @@ class DQNAgent():
         self.target_net.load_state_dict(self.source_net.state_dict()) 
     
     def update_steps_done(self):
-        self.steps_done = 0
+        self.steps_done = self.steps_done // 4
+    
+    def update_hyperparameter(self,is_better:bool):
+        if is_better:
+            self.discount_factor = self.discount_factor + self.eta
+        else:
+            self.discount_factor = self.discount_factor - self.eta
+
     
