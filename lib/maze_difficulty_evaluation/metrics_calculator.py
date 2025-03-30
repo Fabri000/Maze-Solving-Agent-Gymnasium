@@ -1,6 +1,6 @@
 from lib.a_star_algos.a_star import astar_limited_partial
 
-class MetricsCalulator:
+class MetricsCalculator:
     """
     Class that calculate the metrics for a maze that will be used to evaluate its difficulty
     following the approach of the paper "The Quest for the Perfect Perfect-Maze" by Kim and Crawfis.

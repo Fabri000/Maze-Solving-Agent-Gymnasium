@@ -17,7 +17,7 @@ def init_logger(log_name:str):
     return logger
 
 MAZE_SIZE=(81,81) #must be doubled to reconnect to the thin maze representation
-NUM_SAMPLES = 1000
+NUM_SAMPLES = 500
 AlGORITHMS = ["dfs","r-prim", "prim&kill"]
 
 
@@ -40,7 +40,7 @@ for algo in tqdm(AlGORITHMS):
         decision_points.append(m_c.calculate_D(solution))
 
 
-    results[algo] = {" McCledon difficulty": median(difficulties), "Max Difficulty":max(difficulties), "McCledon complexity":median(complexities),"L":median(path_lenghts),"DE":median(dead_ends),"D":median(decision_points)}
+    results[algo] = {" McCledon difficulty": mean(difficulties), "Max Difficulty":max(difficulties), "McCledon complexity":mean(complexities),"L":mean(path_lenghts),"DE":mean(dead_ends),"D":mean(decision_points)}
 
 logger = init_logger("Maze_generation_metrics")
 logger.info(f"Results of the maze generation metrics evaluation on {NUM_SAMPLES} samples of size {MAZE_SIZE}")

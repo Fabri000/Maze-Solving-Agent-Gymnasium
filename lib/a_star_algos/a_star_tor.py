@@ -11,7 +11,8 @@ def heuristic(a, b,rows,cols):
     dy = min(dy, cols - dy)
     return dx + dy
 
-def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
+
+def astar_limited_partial(maze, start, goal, max_depth=1e6):
     """
     Performs a depth-limited A* search to find a path from the start to the goal in the maze, without exceeding max_depth steps.
 
@@ -25,7 +26,7 @@ def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
     Args:
         maze (array):matrix representation of the array.
         start (tuple): starting position.
-        goal (tuple o None): goal position. If None, find the position in the matrix associated to the value 2.
+        goal (tuple): goal position. If None, find the position in the matrix associated to the value 2.
         max_depth (int): max depth for the a* algorithm.
     
     Returns:
@@ -44,7 +45,7 @@ def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
     # Variabile per tenere traccia del nodo raggiunto con il massimo numero di passi (g)
     best_candidate = start
     best_g = g_score[start]
-    
+
     while open_set:
         _, current = heapq.heappop(open_set)
         
@@ -54,7 +55,8 @@ def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
             best_candidate = current
 
         # Se raggiungiamo l'obiettivo, ricostruiamo e restituiamo il percorso completo.
-        if current == goal:
+        if current ==tuple(goal) :
+            
             return reconstruct_path(came_from, current)
         
         # Se il costo per arrivare qui ha raggiunto il limite massimo, non espandiamo ulteriormente.
@@ -64,6 +66,7 @@ def astar_limited_partial(maze, start, goal=None, max_depth=1e6):
         # Esploriamo i vicini (su, giù, sinistra, destra)
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             neighbor = ((current[0] + dx) % rows , (current[1] + dy) % cols)
+            
 
             # Verifica che il vicino sia percorribile (1 o 2)
             if maze[neighbor[0]][neighbor[1]] != 0:

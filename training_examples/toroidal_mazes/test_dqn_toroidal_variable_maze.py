@@ -39,5 +39,10 @@ logger.debug(f"Hyperparameters: lr {learning_rate} | eps_init {starting_epsilon}
 
 trainer = NeuralOffPolicyTrainer(agent,env,device,logger)
 
-trainer.train(n_episodes)
-trainer.train_learned_maze(len(env.env.mazes))
+logger.info("Checking if the agent remember how to solve maze already seen")
+trainer.test(len(env.env.mazes),new = False)
+logger.info(f'Start testing on new mazes')
+trainer.test(50, new = True)
+logger.info(f'Test on different type of algos')
+for algo in ["r-prim","prim&kill","dfs"]:
+    trainer.infer(15,algo)

@@ -50,7 +50,6 @@ class QAgent:
         self.steps_done += 1
         if np.random.random() < epsilon_threshold:
             return self.env.action_space.sample()
-
         else:
             return int(np.argmax(self.q_values[str(obs)]))
 
@@ -72,8 +71,6 @@ class QAgent:
         )
         self.training_error.append(temporal_difference)
 
-    def update_steps_done(self):
-        self.steps_done = self.steps_done // 4
 
     def update_hyperparameter(self,is_better:bool):
         if is_better:

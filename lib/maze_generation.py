@@ -1,6 +1,7 @@
 import random
 import torch
 from lib.a_star_algos.a_star import astar_limited_partial
+from lib.maze_difficulty_evaluation.maze_complexity_evaluation import ComplexityEvaluation
 
 def gen_maze(shape:tuple[int,int], algorithm:str="dfs"):
     """
@@ -47,9 +48,12 @@ def gen_maze_no_border(shape:tuple[int,int], algorithm:str="dfs"):
     extended_shape = (shape[0]+2,shape[1]+2)
     start_point, goal_point, maze = gen_maze(extended_shape,algorithm)
 
-    maze = [row[1:len(row)] for row in maze[1:len(maze)]]
+    difficulty = ComplexityEvaluation(maze,start_point,goal_point).difficulty_of_maze()
+
+    maze = [row[1:len(row)-1] for row in maze[1:len(maze)-1]]
     start_point = (start_point[0]-1,start_point[1]-1)
-    return start_point, goal_point, maze
+    goal_point = (goal_point[0]-1,goal_point[1]-1)
+    return start_point, goal_point, maze, difficulty
 
 
 def random_prim_visit(maze, width: int, height: int, start_point: tuple[int, int]):

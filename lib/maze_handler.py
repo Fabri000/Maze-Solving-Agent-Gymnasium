@@ -66,7 +66,7 @@ def extract_submaze_toroid(maze, position: tuple[int, int], shape: int):
     k = shape // 2
     
     if shape == maze_shape:
-        return maze
+        return maze, position
     
     rows = [(position[0] + i - k) % maze_shape for i in range(shape)]
     cols = [(position[1] + i - k) % maze_shape for i in range(shape)]
@@ -88,7 +88,7 @@ def get_mask_tensor(maze,position):
     maze_tensor = torch.tensor(maze)
         
     goal_mask = (maze_tensor == 2).int() # goal is represented by a 2 in the matrix representation
-    tile_mask = (maze_tensor == 1).int() # tiles are represented by a 1 in the matrix representation)
+    tile_mask = (maze_tensor == 1).int() # tiles are represented by a 1 in the matrix representation) #!!
     wall_mask = (maze_tensor == 0).int() # walls are represented by a 0 in the matrix representation)
 
     player_mask = torch.zeros_like(maze_tensor, dtype=torch.int32)

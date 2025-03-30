@@ -4,6 +4,7 @@ import torch
 import numpy as np
 
 from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
+from gymnasium_env.envs.toroidal_maze_env import ToroidalMazeEnv
 from gymnasium_env.envs.toroidal_variable_maze_env import ToroidalVariableMazeEnv
 from lib.maze_difficulty_evaluation.maze_complexity_evaluation import ComplexityEvaluation
 
@@ -15,12 +16,12 @@ class OffPolicyTrainer():
         self.agent = agent
         self.logger = logger
         self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv) or isinstance(self.env.env, ToroidalVariableMazeEnv)
-        self.algo_id= 0
+        print(self.is_maze_variable)
 
     def train(self,n_episodes:int):
         # reset the environment to get the first observation
         done = False
-        maze_size =  (0,0)
+        maze_size = (0,0)
         count__episode = 0
         num_win = 0
         
@@ -52,20 +53,27 @@ class OffPolicyTrainer():
             win_status = "Win" if win else "Lost"
             if self.is_maze_variable:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | maze of shape {maze_size} | {win_status}')
-                if self.env.env.get_maze_shape() == self.env.env.get_max_shape():
-                    self.logger.info(f'Episode {episode} hitted max shape of maze')
-                    return
+                
             else:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cumulative,2)} | {win_status}')
             
             if win:
-                c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
+                c_e = None
+                if isinstance(self.env.env, ToroidalVariableMazeEnv) or isinstance(self.env.env, ToroidalMazeEnv):
+                    maze =  np.pad(self.env.env.maze_map, pad_width=1, mode='constant', constant_values=0).tolist()
+                    c_e = ComplexityEvaluation(maze,(self.env.env._start_pos[0]+1,self.env.env._start_pos[1]+1),tuple(self.env.env._target_location + 1))
+                else:
+                    c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
                 self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}| generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
                 count__episode = 0
                 num_win += 1
-                #self.change_algorithm(num_win)
+                self.change_algorithm(num_win)
                 self.env.env.update_maze()
-            
+                if self.is_maze_variable:
+                    if self.env.env.get_maze_shape() >= self.env.env.get_max_shape():
+                        self.logger.info(f'Episode {episode} hitted max shape of maze')
+                        return
+
             increment = cumulative > prev_cum_rew
             self.agent.update_hyperparameter(increment)
             prev_cum_rew = cumulative
@@ -76,9 +84,10 @@ class OffPolicyTrainer():
     def test(self, num_mazes:int, new:bool):
         win_count = 0
         num = num_mazes
-        for _ in range(num_mazes):
+        for _ in tqdm(range(num_mazes)):
             if new:
-                #self.env.env.set_algorithm(random.choice(OffPolicyTrainer.ALGOS))
+                algo = random.choice(OffPolicyTrainer.ALGOS)
+                self.env.env.set_algorithm(algo)
                 self.env.env.update_new_maze()
             else:
                 self.env.env.update_visited_maze(remove=True)
@@ -103,19 +112,23 @@ class OffPolicyTrainer():
             
             result = "Win" if win else "Lost"
             if self.is_maze_variable:
-                        self.logger.info(f'{result} | maze shape {maze_size} | cumulative reward {round(total_reward,2)}')
+                        self.logger.info(f'{result} | maze shape {maze_size} | cumulative reward {round(total_reward,2)} | algorithm {self.env.env.ALGORITHM}')
             else:
-                        self.logger.info(f'{result} | cumulative reward {round(total_reward,2)}')    
+                        self.logger.info(f'{result} | cumulative reward {round(total_reward,2)} | algorithm {self.env.env.ALGORITHM}')    
 
         self.logger.info(f'End test | Win Rate {round(win_count / num,4) *100} %')
     
     def change_algorithm(self,num_win:int):
         algo_id = 0
-        if num_win > 10:
+        if num_win >= 10:
             algo_id = 2
         elif num_win >= 5:
             algo_id = 1
-        self.env.env.set_algorithm(OffPolicyTrainer.ALGOS[algo_id])
+        else:
+            algo_id = 0
+
+        algo = OffPolicyTrainer.ALGOS[algo_id]
+        self.env.env.set_algorithm(algo)
         
 
 class NeuralOffPolicyTrainer():
@@ -164,29 +177,37 @@ class NeuralOffPolicyTrainer():
 
                 if loss:
                     total_loss +=loss
-           
+
             result = "Win" if win else "Lost"
 
             if self.is_maze_variable:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size}')
-                if self.env.env.get_maze_shape() == self.env.env.get_max_shape():
-                    self.logger.info(f'Episode {episode} hitted max shape of maze')
-                    return
             else:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | ')
-            
+
             if win:
                 num_win+=1
-                c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
+                c_e = None
+                if isinstance(self.env.env, ToroidalVariableMazeEnv) or isinstance(self.env.env, ToroidalMazeEnv):
+                    maze =  np.pad(self.env.env.maze_map, pad_width=1, mode='constant', constant_values=0).tolist()
+                    c_e = ComplexityEvaluation(maze,(self.env.env._start_pos[0]+1,self.env.env._start_pos[1]+1),tuple(self.env.env._target_location + 1))
+                else:
+                    c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
                 self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}| generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
                 count__episode = 0
-                #self.change_algorithm(num_win)
                 self.env.env.update_maze()
                 if self.is_maze_variable:
-                    self.agent.update_steps_done()
-                    c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
                     maze_size = self.env.env.get_maze_shape()
-                    self.logger.debug(f'Learning new maze| maze of shape {maze_size} | generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
+                    if isinstance(self.env.env, ToroidalVariableMazeEnv) or isinstance(self.env.env, ToroidalMazeEnv):
+                        maze =  np.pad(self.env.env.maze_map, pad_width=1, mode='constant', constant_values=0).tolist()
+                        c_e = ComplexityEvaluation(maze,(self.env.env._start_pos[0]+1,self.env.env._start_pos[1]+1),tuple(self.env.env._target_location + 1))
+                    else:
+                        c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
+                    if self.env.env.get_maze_shape() >= self.env.env.get_max_shape():
+                        self.logger.info(f'Episode {episode} hitted max shape of maze')
+                        return
+                    else:
+                        self.logger.debug(f'Learning new maze| maze of shape {maze_size} | generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
             
             increment = cum_rew > prev_cum_rew
             self.agent.update_hyperparameter(increment)
@@ -205,7 +226,8 @@ class NeuralOffPolicyTrainer():
         win = 0
         for _ in range(num_mazes):
             if new:
-                #self.env.env.set_algorithm(random.choice(NeuralOffPolicyTrainer.ALGOS))
+                algo= random.choice(OffPolicyTrainer.ALGOS)
+                self.env.env.set_algorithm(algo)
                 self.env.env.update_new_maze()
             else:
                 self.env.env.update_visited_maze(remove=True)
@@ -230,16 +252,48 @@ class NeuralOffPolicyTrainer():
 
             result = "Lost" if lost else "Win"
             if self.is_maze_variable:
-                self.logger.info(f'{result} | maze shape {maze_size} | total reward {round(total_reward,4)}')
+                self.logger.info(f'{result} | maze shape {maze_size} | total reward {round(total_reward,4)} | algorithm {self.env.env.ALGORITHM}')
             else:
-                self.logger.info(f'{result} | total reward {round(total_reward,4)}')
+                self.logger.info(f'{result} | total reward {round(total_reward,4)} | algorithm {self.env.env.ALGORITHM}')
+
+        self.logger.info(f'End testing | total Win Rate {round(win / num_mazes,4)*100}')
+    
+    def infer(self,num_mazes:int,algo:str,shape:tuple[int,int]=None):
+        self.logger.info(f'Start of Testing o maze generate using {algo}')
+        win = 0
+        self.env.env.set_algorithm(algo)
+        
+        for _ in range(num_mazes):
+            self.env.env.update_new_maze(shape)   
+                            
+            obs, _ = self.env.reset()
+            done = False
+
+            maze_size =  self.env.env.get_maze_shape()
+            lost = False
+            total_reward = 0
+            while not done:
+                state = (torch.tensor(np.concatenate([obs[k] for k in obs.keys() if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), obs['window'].to(self.device).unsqueeze(0))
+                action = self.agent.get_action(state)
+                next_obs, reward, truncated, terminated, _ = self.env.step(action.item())
+                total_reward += reward
+                if terminated:
+                    win += 1
+                    done = True
+                else:
+                    done = lost= truncated
+                obs = next_obs
+
+            result = "Lost" if lost else "Win"
+            c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
+            if self.is_maze_variable:
+                self.logger.info(f'{result} | maze shape {maze_size} | total reward {round(total_reward,4)} | difficulty {c_e.difficulty_of_maze()} | algorithm {self.env.env.ALGORITHM}')
+            else:
+                self.logger.info(f'{result} | total reward {round(total_reward,4)} | difficulty {c_e.difficulty_of_maze()} | algorithm {self.env.env.ALGORITHM}')
 
         self.logger.info(f'End testing | total Win Rate {round(win / num_mazes,4)*100}')
 
+
     def change_algorithm(self,num_win:int):
-        algo_id = 0
-        if num_win > 10:
-            algo_id = 2
-        elif num_win >= 5:
-            algo_id = 1
-        self.env.env.set_algorithm(OffPolicyTrainer.ALGOS[algo_id])
+        algo =  random.choice(OffPolicyTrainer.ALGOS)
+        self.env.env.set_algorithm(algo)

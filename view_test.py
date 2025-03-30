@@ -1,39 +1,38 @@
 import pygame
-from lib.a_star_algos.a_star import astar_limited_partial
-from lib.maze_generation import gen_maze
-from lib.maze_view import SimpleMazeView
+from lib.a_star_algos.a_star_tor import astar_limited_partial
+from lib.maze_generation import gen_maze_no_border,gen_maze
+from lib.maze_view import SimpleMazeView, ToroidalMazeView
 import numpy as np
 
-from lib.maze_difficulty_evaluation.metrics_calculator import MetricsCalulator
 
-"""
-maze =[
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
-    [0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
-    [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
-    [0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0],
-    [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0],
-    [0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
-    [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-    [0, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+"""maze =[
+    [ 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1],
+    [ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1],
+    [ 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+    [ 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0],
+    [ 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1],
+    [ 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+    [ 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+    [ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
+    [ 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+    [ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    [ 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+    [ 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [ 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2]
 ]
 
-start_pos = (1,1)
-maze_shape = (15,15)
-goal_pos = goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze[r][c] == 2][-1]
-"""
+start_pos = (0,0)
+maze_shape = (13,13)
+goal_pos = goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze[r][c] == 2][-1]"""
 
 
-start_pos,goal_pos,maze = gen_maze((17,17),"prim&kill")
+start_pos,goal_pos,maze = gen_maze((15,15),"prim&kill")
 
-view = SimpleMazeView(maze,start_pos,goal_pos,maze_size=(len(maze),len(maze[0])))
+print(start_pos)
+print(goal_pos)
+
+view = ToroidalMazeView(maze,start_pos,goal_pos,maze_size=(len(maze),len(maze[0])))
 
 ACTIONS = {           
             0: np.array([1, 0]),  # down

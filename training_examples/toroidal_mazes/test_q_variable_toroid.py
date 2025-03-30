@@ -31,6 +31,10 @@ logger.debug(f"Hyperparameter of training: learning rate {lr} | initial epsilon 
 
 trainer = OffPolicyTrainer(env,agent,logger)
 
-trainer.train(n_episodes)
-
-trainer.train_learned_maze(n_mazes=len(env.env.mazes))
+logger.info("Checking if the agent remember how to solve maze already seen")
+trainer.test(len(env.env.mazes),new = False)
+logger.info(f'Start testing on new mazes')
+trainer.test(50, new = True)
+logger.info(f'Test on different type of algos')
+for algo in ["r-prim","prim&kill","dfs"]:
+    trainer.infer(15,algo)

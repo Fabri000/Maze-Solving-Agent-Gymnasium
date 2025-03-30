@@ -47,7 +47,7 @@ class BaseMazeEnv(gym.Env):
         
         self.maze_view = None
 
-        self.max_steps_taken = (self.maze_shape[1] + self.maze_shape[0])*3
+        self.max_steps_taken = 0
         self.cum_rew = 0
         self.visited_cell = []
         self.consecutive_invalid_moves = 0
@@ -59,6 +59,12 @@ class BaseMazeEnv(gym.Env):
     
     def get_algorithm(self):
         return BaseMazeEnv.ALGORITHM
+    
+    def set_max_steps(self):
+        """
+        Set the maximum steps that the agent can take in the episode
+        """
+        return NotImplementedError("Subclasses must implement next_cell")
     
     def generate_maze(self,maze_shape:tuple[int,int]):
         """
@@ -72,8 +78,11 @@ class BaseMazeEnv(gym.Env):
         for _ in range(5):
             tmp_start_pos,tmp_goal_pos,tmp_maze_map = gen_maze(maze_shape,BaseMazeEnv.ALGORITHM)
             tmp_difficulty = ComplexityEvaluation(tmp_maze_map,tmp_start_pos,tmp_goal_pos).difficulty_of_maze() 
-            if tmp_difficulty > difficulty:
-                start_pos,goal_pos,maze_map = tmp_start_pos,tmp_goal_pos,tmp_maze_map
+            if tmp_difficulty < difficulty:
+                start_pos = tmp_start_pos
+                goal_pos = tmp_goal_pos
+                maze_map = tmp_maze_map
+
                 difficulty = tmp_difficulty
         
         return start_pos,goal_pos,maze_map
@@ -100,7 +109,7 @@ class BaseMazeEnv(gym.Env):
         Returns:
             dict: the observation of the environment.
         """
-        return {"agent": self._agent_location, "best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
+        return {"agent": self._agent_location,"target":self._target_location, "best dir": self._agent_location - self._find_best_next_cell(self._agent_location)}
     
     def _get_info(self):
         """
@@ -171,12 +180,14 @@ class BaseMazeEnv(gym.Env):
             self.visited_cell.append(current_cell)
         else:
             self.consecutive_invalid_moves += 1
-            reward -= 1 - math.exp(- 0.09 * (self.consecutive_invalid_moves))
+            reward -= 1 - math.exp(- 0.1 * (self.consecutive_invalid_moves))
+            
 
         observation = self._get_obs()
         info = self._get_info()
         
         self.cum_rew += reward
+        
         self.steps_taken+=1
         if self.steps_taken > self.max_steps_taken:
             truncated = True

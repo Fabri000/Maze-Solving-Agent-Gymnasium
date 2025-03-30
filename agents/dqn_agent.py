@@ -79,7 +79,6 @@ class DQNAgent():
 
         #parameters
         self.learning_rate = learning_rate
-        self.beta = -0.001
         self.starting_epsilon = starting_epsilon
         self.final_epsilon = final_epsilon
         self.epsilon_decay = epsilon_decay

@@ -10,7 +10,7 @@ class DQAgent:
         initial_epsilon: float,
         epsilon_decay: float,
         final_epsilon: float,
-        gamma: float,
+        discount_factor: float,
         eta:float): #discount factor
  
         self.env = env
@@ -25,7 +25,7 @@ class DQAgent:
         
         self.epsilon = initial_epsilon
 
-        self.gamma = gamma
+        self.discount_factor = discount_factor
         self.eta = eta
 
         self.steps_done = 0
@@ -42,7 +42,7 @@ class DQAgent:
         if np.random.random() < epsilon_threshold:
             return self.env.action_space.sample()
         else:
-            q_table = self.q_a_values[str(obs)]+self.q_a_values[str(obs)]
+            q_table = self.q_a_values[str(obs)]
             return int(np.argmax(q_table))
     
     def update(
@@ -56,20 +56,18 @@ class DQAgent:
         td_error = 0
         if np.random.random()<0.5: #update Q_A
             best_action= self.get_action(next_obs)
-            td_error = reward + self.gamma * self.q_b_values[str(next_obs)][best_action] - self.q_a_values[str(obs)][action]
+            td_error = reward + self.discount_factor * self.q_b_values[str(next_obs)][best_action] - self.q_a_values[str(obs)][action]
             self.q_a_values[str(obs)][action] = self.q_a_values[str(obs)][action] + self.learning_rate *  td_error
         else: #update Q_B
             best_action= self.get_action(next_obs)
-            td_error = reward + self.gamma * self.q_a_values[str(next_obs)][best_action] - self.q_b_values[str(obs)][action]
+            td_error = reward + self.discount_factor * self.q_a_values[str(next_obs)][best_action] - self.q_b_values[str(obs)][action]
             self.q_b_values[str(obs)][action] = self.q_b_values[str(obs)][action] + self.learning_rate * td_error
 
         self.training_error.append(td_error)
 
-    def update_steps_done(self):
-        self.steps_done = self.steps_done // 4
 
     def update_hyperparameter(self,is_better:bool):
         if is_better:
-            self.gamma = self.gamma + self.eta
+            self.discount_factor = self.discount_factor + self.eta
         else:
-            self.gamma = self.gamma - self.eta
+            self.discount_factor = self.discount_factor - self.eta

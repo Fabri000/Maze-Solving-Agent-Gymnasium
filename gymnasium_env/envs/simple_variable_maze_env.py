@@ -1,3 +1,4 @@
+import math
 import random
 import torch.nn as nn
 import numpy as np
@@ -7,12 +8,13 @@ from gymnasium import spaces
 
 from gymnasium_env.envs.base_maze_env import BaseVariableSizeEnv
 from lib.a_star_algos.a_star import astar_limited_partial
+from lib.maze_difficulty_evaluation.metrics_calculator import MetricsCalculator
 from lib.maze_handler import extract_submaze, get_mask_tensor
 from lib.maze_view import SimpleMazeView
 
 
 class SimpleVariableMazeEnv(BaseVariableSizeEnv):
-    START_SHAPE = (23,23)
+    START_SHAPE = (29,29)
 
     def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
         """
@@ -25,14 +27,16 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         self.max_shape = max_shape
 
         maze_shape = SimpleVariableMazeEnv.START_SHAPE
-        start_pos,goal_pos, maze_map =  self.generate_maze(self.maze_shape)
-
+        start_pos,goal_pos, maze_map =  self.generate_maze(maze_shape)
+        
         super(SimpleVariableMazeEnv,self).__init__(maze_map, start_pos, goal_pos, maze_shape)
+        
+        self.set_max_steps()
 
         if self.render_mode == "human":
-            self.maze_view = SimpleMazeView(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
+            self.maze_view = SimpleMazeView(self.maze_map,self._start_pos,self._target_location,maze_shape)
         
-        self.mazes.append((self._start_pos, self.maze_shape, self.maze_map))
+        self.mazes.append((self._start_pos, maze_shape, self.maze_map))
         self.reset()
     
     def get_max_shape(self):
@@ -42,6 +46,14 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
             tuple: the maximum shape of
         """
         return self.max_shape
+    
+    def set_max_steps(self):
+        """
+        Set the maximum steps that the agent can take in the episode
+        """
+        path = self.find_path(self._start_pos)
+        factor = MetricsCalculator(self.maze_map, len(path)).calculate_L(path)
+        self.max_steps_taken = math.ceil((((self.maze_shape[0]-1) * (self.maze_shape[1]-1)) - 1) * factor)
     
     def find_path(self,source:tuple[int,int],max_depth:int=1e6):
         """
@@ -78,7 +90,8 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
             
             self._target_location = np.array(goal_pos, dtype=np.int32)
             
-            self.max_steps_taken = (self.maze_shape[1] + self.maze_shape[0])*3
+            self.set_max_steps()
+
             self.mazes.append((self._start_pos,self.maze_shape,self.maze_map))
             
             self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
@@ -93,6 +106,7 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         Args:
             remove (bool): whether to remove the visited maze from the list of learned maze. Default: True."""
         self._start_pos,self.maze_shape,self.maze_map = self.mazes[self.next]
+        
         if remove:
             self.mazes.remove(self.mazes[self.next])
         else:
@@ -101,21 +115,21 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
         goal_pos = [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
         self._target_location = np.array(goal_pos, dtype=np.int32)
 
-        self.max_steps_taken = (self.maze_shape[1] + self.maze_shape[0])*3
+        self.set_max_steps()
         
         self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         self.reset()
     
 
-    def update_new_maze(self):
-        shape = random.sample([(a,a) for a in range(SimpleVariableMazeEnv.START_SHAPE[0],self.max_shape[0],2)],1)[0]
-        self.update_maze_difficulty()
+    def update_new_maze(self, shape:tuple[int,int]=None):
+        if shape is None:
+            shape = random.sample([(a,a) for a in range(SimpleVariableMazeEnv.START_SHAPE[0],self.max_shape[0],2)],1)[0]
         
         self._start_pos, goal_pos, self.maze_map =  self.generate_maze(shape)
         self.maze_shape = (len(self.maze_map),len(self.maze_map[0]))
         self._target_location = np.array(goal_pos, dtype=np.int32)
         
-        self.max_steps_taken = (self.maze_shape[1] + self.maze_shape[0])*3
+        self.set_max_steps()
         
         self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         self.reset()
@@ -134,9 +148,10 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
 
         self.observation_space = spaces.Dict(
             {
-                "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
+                "agent": gym.spaces.Box(0,self.max_shape[0]*self.max_shape[1],shape=(2,),dtype=int),
+                "target": gym.spaces.Box(0,self.max_shape[0]*self.max_shape[1],shape=(2,),dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                "window": gym.spaces.Box(-1,1,shape=(4,15,15),dtype=float),
+                "window": gym.spaces.Box(-1,1,shape=(4,SimpleEnrichVariableMazeEnv.WINDOW_DIM,SimpleEnrichVariableMazeEnv.WINDOW_DIM),dtype=float),
             }
         )
 
@@ -145,7 +160,8 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
 
         mask = get_mask_tensor(sub_maze,player_position)
 
-        return {"agent": self._agent_location, 
+        return {"agent": self._agent_location,
+                "target":self._target_location,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
                 "window": mask
         }

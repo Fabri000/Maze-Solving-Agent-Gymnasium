@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
@@ -5,6 +6,7 @@ import torch.nn as nn
 
 from gymnasium_env.envs.base_maze_env import BaseConstantSizeEnv
 from lib.a_star_algos.a_star import astar_limited_partial
+from lib.maze_difficulty_evaluation.metrics_calculator import MetricsCalculator
 from lib.maze_handler import extract_submaze, get_mask_tensor
 from lib.maze_view import SimpleMazeView
 
@@ -24,6 +26,7 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         start_pos,goal_pos,maze_map = self.generate_maze(maze_shape)
 
         super(SimpleMazeEnv, self).__init__(maze_map,start_pos,goal_pos,maze_shape)
+        self.set_max_steps()
 
         if render_mode == "human":
             self.maze_view = SimpleMazeView(maze_map,start_pos,goal_pos,maze_shape)
@@ -34,6 +37,14 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         
     def next_cell(self, agent_pos, dir):
         return tuple(agent_pos + SimpleMazeEnv.ACTIONS[dir])
+
+    def set_max_steps(self):
+        """
+        Set the maximum steps that the agent can take in the episode
+        """
+        path = self.find_path(self._start_pos)
+        factor = MetricsCalculator(self.maze_map, len(path)).calculate_L(path)
+        self.max_steps_taken = math.ceil((((self.maze_shape[0]-1) * (self.maze_shape[1]-1)) - 1) * factor)
     
     def valid_cell(self, pos):
         """
@@ -60,9 +71,11 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         """
         Update the maze.
         """
-        self._start_pos,goal_pos,self.maze_map = self.generate_maze(self.maze_shape)
+        self._start_pos,goal_pos,self.maze_map= self.generate_maze(self.maze_shape)
 
         self._target_location = np.array(goal_pos, dtype=np.int32)
+
+        self.set_max_steps()
 
         self.mazes.append([self._start_pos,self.maze_map])
 
@@ -76,6 +89,7 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
             remove (bool): whether to remove the visited cells. Default: True.
         """
         self._start_pos, self.maze_map = self.mazes[self.next]
+       
         goal_pos =  [(r, c) for r in range(self.maze_shape[0]) for c in range(self.maze_shape[1]) if self.maze_map[r][c] == 2][0]
 
         if remove:
@@ -84,6 +98,8 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
             self.next+=1
 
         self._target_location = np.array(goal_pos, dtype=np.int32)
+        
+        self.set_max_steps()
 
         self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
@@ -91,12 +107,14 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
     def update_new_maze(self):
         self._start_pos, goal_pos, self.maze_map = self.generate_maze(self.maze_shape)
         self._target_location = np.array(goal_pos, dtype=np.int32)
+        
+        self.set_max_steps()
 
         self.maze_view.update_maze(self.maze_map,self._start_pos,self._target_location,self.maze_shape)
         self.reset()
     
 class SimpleEnrichMazeEnv(SimpleMazeEnv):
-
+    WINDOW_DIM = 15
     def __init__(self,maze_shape:tuple[int,int],render_mode:str="human"):
         """
         Initialize the maze environment.
@@ -106,20 +124,23 @@ class SimpleEnrichMazeEnv(SimpleMazeEnv):
         """
 
         super(SimpleEnrichMazeEnv, self).__init__(maze_shape,render_mode)
+        
 
         self.observation_space = spaces.Dict(
             {
                 "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
+                "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                "window": gym.spaces.Box(-1,1,shape=(4,15,15),dtype=float)
+                "window": gym.spaces.Box(-1,1,shape=(4,SimpleEnrichMazeEnv.WINDOW_DIM,SimpleEnrichMazeEnv.WINDOW_DIM),dtype=float)
             }
         )
 
     def _get_obs(self):
-        sub_maze,position = extract_submaze(self.maze_map,self._agent_location,15)
+        sub_maze,position = extract_submaze(self.maze_map,self._agent_location,SimpleEnrichMazeEnv.WINDOW_DIM)
         mask = get_mask_tensor(sub_maze,position)
         
         return {"agent": self._agent_location,
+                "target": self._target_location,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
                 "window": mask}
     
