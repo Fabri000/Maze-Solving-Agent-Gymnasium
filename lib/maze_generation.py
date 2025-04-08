@@ -153,7 +153,7 @@ def prim_and_kill_visit(maze,width:int,height:int, start_point:tuple[int,int]):
 
 def random_walk(maze,unmarked,marked,current,size):
     """
-    Do a randomi walk on the maze starting from current.
+    Do a random walk on the maze starting from current.
     Args:
         maze (array): the array representing the current maze
         unmarked (array): contains the position not visited.
@@ -217,7 +217,7 @@ def find_random_position(maze, val:int, start_point:tuple[int,int]):
 
     return chosed
 
-def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int):
+def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int,algorithms:list[str]=["dfs","r-prim","prim&kill"]):
     """
     Generate a set of mazes
     Args:
@@ -227,10 +227,9 @@ def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int):
         maze_set (array): set of generated mazes.
     """
     maze_set = []
-    algos = ["dfs","r-prim","prim&kill"]
     while len(maze_set) < num_mazes:
 
-        start_poin,_, maze = gen_maze(shape, random.choice(algos))
+        start_poin,_, maze = gen_maze(shape, random.choice(algorithms))
         
         maze_tensor = torch.tensor(maze)
         

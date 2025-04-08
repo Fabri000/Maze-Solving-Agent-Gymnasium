@@ -25,27 +25,23 @@ class DQN(nn.Module):
 
         self.conv =nn.Sequential(
             Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
-            ReLU(),
-            MaxPool2d(2,2),
-            Conv2d(h_channels, h_channels*2,kernel_size=3,stride=1,padding=1),
-            ReLU(),
-            MaxPool2d(2,2),
-        )
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.2),
+            MaxPool2d(2,2))
 
+        #self.conv = torch.load("D:\\file\\tesi prj\\gymnasium maze\\weights\\FeatureExtractor_(15, 15).pth",weights_only=False)
+        
         input_dim = self.get_conv_size(DQN.WINDOW_SIZE)+n_observations
 
         self.fc =nn.Sequential(
             nn.Linear(input_dim,hidden_dim),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.2),
+            nn.Linear(hidden_dim,hidden_dim //4),
             nn.ReLU(),
             nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,hidden_dim//2),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim//2,n_actions)
+            nn.Linear(hidden_dim //4,n_actions)
         )
-
-        self.conv.train()
-        self.fc.train()
     
     def forward(self,x):
         s,w= x
@@ -90,8 +86,8 @@ class DDQNAgent():
         observation, _ = env.reset()
         n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))
 
-        self.source_net = DQN(4,n_observations,n_actions,16).to(device)
-        self.target_net = DQN(4,n_observations,n_actions,16).to(device)
+        self.source_net = DQN(4,n_observations,n_actions,32).to(device)
+        self.target_net = DQN(4,n_observations,n_actions,32).to(device)
 
         self.memory = ReplayMemory(memory_size)
 
@@ -167,6 +163,7 @@ class DDQNAgent():
     
     def update_steps_done(self):
         self.steps_done = self.steps_done // 4
+        self.discount_factor = 0.7
     
     def update_hyperparameter(self,is_better:bool):
         if is_better:

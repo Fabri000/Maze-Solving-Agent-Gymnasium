@@ -4,7 +4,7 @@ import os
 from tqdm import tqdm
 
 # Get the absolute path to the root directory
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 # Add the root directory to sys.path
 sys.path.append(root_dir)

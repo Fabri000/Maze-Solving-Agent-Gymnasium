@@ -22,9 +22,8 @@ class ValueBasedTrainer():
             done = False
 
             while not done:
-                
-                state = torch.tensor(np.concatenate([observation[k] for k in observation], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0)
-                
+                state = (torch.tensor(np.concatenate([observation[k] for k in observation.keys() if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), observation['window'].to(self.device).unsqueeze(0))
+
                 action,probs = self.agent.select_action(state)
                 
                 observation, reward, truncated, terminated, _ = self.env.step(action)

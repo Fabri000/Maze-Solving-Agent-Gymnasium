@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.nn.modules import Conv2d, ConvTranspose2d, ReLU,  MaxPool2d, Sigmoid
+from torch.nn.modules import Conv2d
 
 
 class CAE(nn.Module):
@@ -14,22 +14,19 @@ class CAE(nn.Module):
         """
         super(CAE,self).__init__()
 
-        self.encoder = nn.Sequential(
-            Conv2d(in_channels,h_channels,kernel_size=3,stride=1),
-            ReLU(),
-            MaxPool2d(2,2),
-            Conv2d(h_channels, h_channels,kernel_size=3,stride=1),
-            ReLU(),
+        self.encoder =nn.Sequential(
+            Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.2),
+            nn.MaxPool2d(2,2),
         )
 
-        self.decoder =  nn.Sequential(
-            nn.ConvTranspose2d(h_channels, h_channels, kernel_size=3, stride=1, output_padding=0),  # Inverting Conv2
-            nn.ReLU(),
-            nn.ConvTranspose2d(h_channels, in_channels, kernel_size=2, stride=2, output_padding=0),  # Inverting MaxPool
-            nn.ReLU(),
-            nn.ConvTranspose2d(in_channels, in_channels, kernel_size=3, stride=1, output_padding=1),  # Inverting Conv1
-            nn.ReLU()
+        self.decoder = nn.Sequential(
+
+            nn.ConvTranspose2d(h_channels, in_channels, kernel_size=2, stride=2, output_padding=1),  # upsample
+            nn.Sigmoid()
         )
+
 
     def forward(self,x):
         """

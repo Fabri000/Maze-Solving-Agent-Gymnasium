@@ -5,39 +5,40 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 from torch.nn.modules import Conv2d, ReLU,  MaxPool2d
+import torch.nn.functional as F
 
 class PolicyNetwork(nn.Module):
     WINDOW_SIZE=(15,15)
-    def __init__(self,in_channels:int,n_actions:int,h_channels:int,hidden_dim:int=128):
 
-
+    def __init__(self,in_channels:int,n_observations:int,n_actions:int,h_channels:int,hidden_dim:int=1024):
         super(PolicyNetwork,self).__init__()
+
         self.in_channels = in_channels
 
         self.conv =nn.Sequential(
-            Conv2d(in_channels,h_channels,kernel_size=3,stride=1),
+            Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
             ReLU(),
             MaxPool2d(2,2),
-            Conv2d(h_channels, h_channels,kernel_size=3,stride=1),
+            Conv2d(h_channels, h_channels*2,kernel_size=3,stride=1,padding=1),
             ReLU(),
+            MaxPool2d(2,2),
         )
 
-        input_dim = self.get_conv_size(PolicyNetwork.WINDOW_SIZE)+4
+        input_dim = self.get_conv_size(PolicyNetwork.WINDOW_SIZE)+n_observations
 
         self.fc =nn.Sequential(
             nn.Linear(input_dim,hidden_dim),
             nn.ReLU(),
             nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,hidden_dim),
+            nn.Linear(hidden_dim,hidden_dim//2),
             nn.ReLU(),
             nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,n_actions),
-            nn.Softmax()
+            nn.Linear(hidden_dim//2,n_actions)
         )
 
         self.conv.train()
         self.fc.train()
-
+    
     def forward(self,x):
         s,w= x
         fw = self.conv(w)
@@ -57,9 +58,11 @@ class RFAgent():
         self.device = device
 
         n_actions = env.action_space.n
-        
 
-        self.policy_net = PolicyNetwork(4,n_actions,32).to(device)
+        observation, _ = env.reset()
+        n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))
+
+        self.policy_net = PolicyNetwork(4,n_observations,n_actions,16).to(device)
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(),lr)
 
@@ -68,6 +71,7 @@ class RFAgent():
     
     def select_action(self,state):
         probs = self.policy_net(state)
+        probs = F.softmax(probs, dim=-1)
         m = Categorical(probs)
         action = m.sample()
 

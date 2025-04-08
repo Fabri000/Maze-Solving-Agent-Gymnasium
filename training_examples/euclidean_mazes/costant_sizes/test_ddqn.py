@@ -1,8 +1,9 @@
 import sys
 import os
 
+
 # Get the absolute path to the root directory
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 # Add the root directory to sys.path
 sys.path.append(root_dir)
@@ -16,10 +17,10 @@ from agents.ddqn_agent import DDQNAgent
 from lib.trainers.off_policy_trainer import NeuralOffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_shape = (41,41)
+maze_shape = (21,21)
 device = torch_directml.device()
 
-n_episodes = 150
+n_episodes = 350
 learning_rate=1e-3
 starting_epsilon=0.95
 final_epsilon=0.05

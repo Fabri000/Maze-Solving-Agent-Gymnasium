@@ -104,7 +104,9 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
     
-    def update_new_maze(self):
+    def update_new_maze(self, shape:tuple[int,int]=None):
+        if shape is not None:
+            self.maze_shape = shape
         self._start_pos, goal_pos, self.maze_map = self.generate_maze(self.maze_shape)
         self._target_location = np.array(goal_pos, dtype=np.int32)
         

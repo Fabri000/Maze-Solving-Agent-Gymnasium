@@ -15,7 +15,7 @@ class BaseMazeEnv(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array'],"render_fps": 4}
 
-    ALGORITHM = "r-prim"
+    ALGORITHM = "r-prim"  # Default algorithm for maze generation
 
     ACTIONS = {           
             0: np.array([1, 0]),  # down
@@ -181,7 +181,6 @@ class BaseMazeEnv(gym.Env):
         else:
             self.consecutive_invalid_moves += 1
             reward -= 1 - math.exp(- 0.1 * (self.consecutive_invalid_moves))
-            
 
         observation = self._get_obs()
         info = self._get_info()

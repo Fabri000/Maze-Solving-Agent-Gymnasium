@@ -26,34 +26,29 @@ class DQN(nn.Module):
 
         self.conv =nn.Sequential(
             Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
-            ReLU(),
-            MaxPool2d(2,2),
-            Conv2d(h_channels, h_channels*2,kernel_size=3,stride=1,padding=1),
-            ReLU(),
-            MaxPool2d(2,2),
+            nn.LeakyReLU(),
+            MaxPool2d(2,2)
         )
 
+        #self.conv = torch.load("D:\\file\\tesi prj\\gymnasium maze\\weights\\FeatureExtractor_(15, 15).pth",weights_only=False)
+        
         input_dim = self.get_conv_size(DQN.WINDOW_SIZE)+n_observations
 
         self.fc =nn.Sequential(
             nn.Linear(input_dim,hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,hidden_dim//2),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim//2,n_actions)
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim,hidden_dim //2),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim //2,n_actions)
         )
 
-        self.conv.train()
-        self.fc.train()
-    
     def forward(self,x):
         s,w= x
         fw = self.conv(w)
         fw = fw.view(fw.shape[0], -1)
         y = torch.cat((fw,s),dim=1)
-        return self.fc(y)
+        q_values = self.fc(y)
+        return q_values
     
     def get_conv_size(self, shape):
         out_conv = self.conv(torch.zeros(1,self.in_channels, shape[0], shape[1]))
@@ -92,13 +87,13 @@ class DQNAgent():
         observation, _ = env.reset()
         n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))
 
-        self.source_net = DQN(4,n_observations,n_actions,16).to(device)
-        self.target_net = DQN(4,n_observations,n_actions,16).to(device)
+        self.source_net = DQN(4,n_observations,n_actions,32).to(device)
+        self.target_net = DQN(4,n_observations,n_actions,32).to(device)
 
         self.memory = ReplayMemory(memory_size)
 
         self.optimizer = optim.AdamW(self.source_net.parameters(),learning_rate)
-        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=100,eta_min=1e-6)
+        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=75,eta_min=1e-5)
         self.steps_done = 0
     
     def memorize(self,*args):
@@ -162,16 +157,16 @@ class DQNAgent():
         else:
             return False
 
-    def update_target(self):
-        self.target_net.load_state_dict(self.source_net.state_dict()) 
-    
+    def update_target(self, tau=0.7):
+        for target_param, source_param in zip(self.target_net.parameters(), self.source_net.parameters()):
+            target_param.data.copy_(tau * source_param.data + (1.0 - tau) * target_param.data)
+
     def update_steps_done(self):
-        self.steps_done = self.steps_done // 4
+        self.steps_done = 0
     
     def update_hyperparameter(self,is_better:bool):
         if is_better:
             self.discount_factor = self.discount_factor + self.eta
         else:
-            self.discount_factor = self.discount_factor - self.eta
-
+            self.discount_factor = self.discount_factor - self.eta    
     

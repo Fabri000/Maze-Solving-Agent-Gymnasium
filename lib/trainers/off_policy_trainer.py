@@ -143,10 +143,11 @@ class NeuralOffPolicyTrainer():
 
     def train(self,n_episodes:int):
         cum_rew = 0
-        prev_cum_rew=0
+        prev_cum_rew=-1e6
         maze_size = None
         count__episode = 0
         num_win = 0
+        num_try = 0
 
         for episode in tqdm(range(n_episodes)):
             obs, _ = self.env.reset()
@@ -157,6 +158,7 @@ class NeuralOffPolicyTrainer():
             num_step = 0
             win = False
             count__episode  += 1
+            num_try +=1
 
             while not done:
                 num_step+=1
@@ -195,6 +197,7 @@ class NeuralOffPolicyTrainer():
                     c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
                 self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}| generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
                 count__episode = 0
+                self.change_algorithm(num_win)
                 self.env.env.update_maze()
                 if self.is_maze_variable:
                     maze_size = self.env.env.get_maze_shape()
@@ -208,7 +211,7 @@ class NeuralOffPolicyTrainer():
                         return
                     else:
                         self.logger.debug(f'Learning new maze| maze of shape {maze_size} | generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
-            
+
             increment = cum_rew > prev_cum_rew
             self.agent.update_hyperparameter(increment)
             prev_cum_rew = cum_rew
@@ -217,7 +220,7 @@ class NeuralOffPolicyTrainer():
 
             if self.agent.has_to_update(episode):
                 self.agent.update_target()
-
+            print("discount factor",self.agent.discount_factor," steps done",self.agent.steps_done)
         self.logger.info(f'End of training')
 
 
@@ -265,7 +268,7 @@ class NeuralOffPolicyTrainer():
         
         for _ in range(num_mazes):
             self.env.env.update_new_maze(shape)   
-                            
+            
             obs, _ = self.env.reset()
             done = False
 
@@ -294,6 +297,12 @@ class NeuralOffPolicyTrainer():
         self.logger.info(f'End testing | total Win Rate {round(win / num_mazes,4)*100}')
 
 
-    def change_algorithm(self,num_win:int):
-        algo =  random.choice(OffPolicyTrainer.ALGOS)
-        self.env.env.set_algorithm(algo)
+    def change_algorithm(self, num_win:int ):
+        if num_win == 10:
+            self.agent.update_steps_done()
+            self.env.env.set_algorithm( NeuralOffPolicyTrainer.ALGOS[2])
+        elif num_win == 5:
+            self.agent.update_steps_done()
+            self.env.env.set_algorithm(NeuralOffPolicyTrainer.ALGOS[1])
+
+        
