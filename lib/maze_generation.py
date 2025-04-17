@@ -204,7 +204,7 @@ def find_random_position(maze, val:int, start_point:tuple[int,int]):
         if neighbors == 1:
             candidates.append(position)
 
-    if not positions:
+    if not candidates:
         return None
     
     chosed = candidates[0]
@@ -229,17 +229,17 @@ def generate_collection_of_mazes(shape:tuple[int,int],num_mazes:int,algorithms:l
     maze_set = []
     while len(maze_set) < num_mazes:
 
-        start_poin,_, maze = gen_maze(shape, random.choice(algorithms))
+        start_point,_, maze = gen_maze(shape, random.choice(algorithms))
         
         maze_tensor = torch.tensor(maze)
         
-        goal_mask = (maze_tensor == 2).int() # goal is represented by a 2 in the matrix representation
+        
         tile_mask = (maze_tensor == 1).int() # tiles are represented by a 1 in the matrix representation)
         wall_mask = (maze_tensor == 0).int() # walls are represented by a 0 in the matrix representation)
-        player_mask = torch.zeros_like(maze_tensor, dtype=torch.int32)
-        player_mask[start_poin[0]][start_poin[1]]=1
+        non_visited = (maze_tensor != 0).int()
+        non_visited[start_point[0]][start_point[1]] = 0
         
-        final_tensor = torch.stack([wall_mask,tile_mask,player_mask,goal_mask])
+        final_tensor = torch.stack([wall_mask,tile_mask,non_visited])
 
         if not any(torch.equal(final_tensor, maze) for maze in maze_set):
             maze_set.append(final_tensor)

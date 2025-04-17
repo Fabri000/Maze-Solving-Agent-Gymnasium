@@ -19,3 +19,16 @@ register(
     id="gymnasium_env/VariableMazeEnv-v1",
     entry_point="gymnasium_env.envs:SimpleEnrichVariableMazeEnv",
 )
+
+register(
+    id="gymnasium_env/ToroidalMazeEnv-v0",
+    entry_point="gymnasium_env.envs:ToroidalMazeEnv",
+)
+
+register(
+    id="gymnasium_env/ToroidalMazeEnv-v1",
+    entry_point="gymnasium_env.envs:ToroidalEnrichMazeEnv",
+)
+
+
+

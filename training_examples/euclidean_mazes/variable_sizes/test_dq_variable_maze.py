@@ -11,24 +11,24 @@ sys.path.append(root_dir)
 from gymnasium_env.envs.simple_variable_maze_env import SimpleVariableMazeEnv
 
 from lib.trainers.off_policy_trainer import OffPolicyTrainer
-from agents.q_agent import QAgent
+from agents.dq_agent import DQAgent
 from lib.logger_inizializer import init_logger
 
 maze_max_shape=(81,81)
 
-n_episodes = 300
+n_episodes = 200
 lr = 1e-3
 eps_init = 0.95
 eps_end = 0.05
-eps_dec = maze_max_shape[0]*maze_max_shape[1] // 2
-gamma = 0.7
+eps_dec = ((maze_max_shape[0]-1)*(maze_max_shape[1]-1) // 2)
+gamma = 0.85
 eta = 1e-2
 
 env = SimpleVariableMazeEnv(max_shape=maze_max_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 
-agent = QAgent(
+agent = DQAgent(
     env=env,
     learning_rate=lr,
     initial_epsilon=eps_init,
@@ -38,7 +38,7 @@ agent = QAgent(
     eta=eta
 )
 
-log_dir = "logs/variable_q_logs"
+log_dir = "logs/variable_dq_logs"
 logger = init_logger("Agent_log",log_dir)
 
 logger.info(f"Training starting on variable mazes with dimension variable between {SimpleVariableMazeEnv.START_SHAPE} and {maze_max_shape}")
@@ -50,4 +50,4 @@ trainer.train(n_episodes)
 logger.info("Checking if the agent remember how to solve maze already seen")
 trainer.test(len(env.env.mazes),new = False)
 logger.info(f'Start testing on new mazes')
-trainer.test(15, new = True)
+trainer.test(75, new = True)

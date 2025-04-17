@@ -10,8 +10,8 @@ class MazeViewTemplate():
     }
 
     TILE_SIZE = 16
-    CELL_COLORS = [(0,0,0),(255,255,255),(3, 255, 28)] #colors of wall, floor, goal
-    AGENT_COLOR = (17, 0, 255)
+    CELL_COLORS = [(46, 52, 64),(236, 239, 244),(163, 190, 140)] #colors of wall, floor, goal
+    AGENT_COLOR = (94, 129, 172)
 
     def __init__(self, maze_map, start_position, goal_position, maze_size: tuple[int,int], enable_render:bool=True):
         
@@ -91,7 +91,7 @@ class MazeViewTemplate():
                 x,y = j * MazeViewTemplate.TILE_SIZE, i * MazeViewTemplate.TILE_SIZE
                 color = MazeViewTemplate.CELL_COLORS[self.maze_map[i][j]]
                 pygame.draw.rect(self.maze_layer,color,pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),0)
-                pygame.draw.rect(self.maze_layer,(148, 148, 148),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),1)
+                pygame.draw.rect(self.maze_layer,(59, 66, 82),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),1)
         
     def _draw_agent(self,transparency=255):
         if not self.enable_render:
@@ -144,7 +144,7 @@ class MazeViewTemplate():
         color = MazeViewTemplate.CELL_COLORS[self.maze_map[position[0]][position[1]]]
         x,y = position[1] * MazeViewTemplate.TILE_SIZE, position[0] * MazeViewTemplate.TILE_SIZE
         pygame.draw.rect(self.maze_layer,color,pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),0)
-        pygame.draw.rect(self.maze_layer,(148, 148, 148),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),1)
+        pygame.draw.rect(self.maze_layer,(208, 135, 112),pygame.Rect(x,y,MazeViewTemplate.TILE_SIZE,MazeViewTemplate.TILE_SIZE),1) #(59, 66, 82)
 
     def _reset_agent(self):
         self._draw_agent(transparency=0)

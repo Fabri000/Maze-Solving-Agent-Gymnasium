@@ -2,10 +2,7 @@ import sys
 import os
 
 # Get the absolute path to the root directory
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Add the root directory to sys.path
-sys.path.append(root_dir)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 
 import torch
@@ -20,11 +17,11 @@ from lib.logger_inizializer import init_logger
 maze_shape = (41,41)
 device = torch_directml.device()
 
-n_episodes = 150
+n_episodes = 200
 learning_rate=1e-3
 starting_epsilon=0.95
-final_epsilon=0.05
-epsilon_decay= maze_shape[0]*maze_shape[1]  // 2
+final_epsilon=0.1
+epsilon_decay= ((maze_shape[0]-1)*(maze_shape[1]-1) // 2)
 discount_factor=0.7
 eta = 1e-2
 batch_size=128
@@ -46,7 +43,7 @@ trainer.train(n_episodes)
 logger.info("Checking if the agent remember how to solve maze already seen")
 trainer.test(len(env.env.mazes),new = False)
 logger.info(f'Start testing on new mazes')
-trainer.test(50, new = True)
+trainer.test(75, new = True)
 logger.info(f'Test on different type of algos')
 for algo in ["r-prim","prim&kill","dfs"]:
     trainer.infer(15,algo)

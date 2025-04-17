@@ -27,20 +27,18 @@ class DQN(nn.Module):
             Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
             nn.LeakyReLU(),
             nn.Dropout(p=0.2),
-            MaxPool2d(2,2))
+            MaxPool2d(2,2)
+        )
 
-        #self.conv = torch.load("D:\\file\\tesi prj\\gymnasium maze\\weights\\FeatureExtractor_(15, 15).pth",weights_only=False)
         
         input_dim = self.get_conv_size(DQN.WINDOW_SIZE)+n_observations
 
         self.fc =nn.Sequential(
             nn.Linear(input_dim,hidden_dim),
             nn.LeakyReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim,hidden_dim //4),
+            nn.Linear(hidden_dim,hidden_dim //2),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(hidden_dim //4,n_actions)
+            nn.Linear(hidden_dim //2,n_actions)
         )
     
     def forward(self,x):
@@ -86,13 +84,13 @@ class DDQNAgent():
         observation, _ = env.reset()
         n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))
 
-        self.source_net = DQN(4,n_observations,n_actions,32).to(device)
-        self.target_net = DQN(4,n_observations,n_actions,32).to(device)
+        self.source_net = DQN(3,n_observations,n_actions,32).to(device)
+        self.target_net = DQN(3,n_observations,n_actions,32).to(device)
 
         self.memory = ReplayMemory(memory_size)
 
         self.optimizer = optim.AdamW(self.source_net.parameters(),learning_rate)
-        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=100,eta_min=1e-5)
+        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=150,eta_min=1e-5)
         self.steps_done = 0
     
     def memorize(self,*args):
@@ -100,13 +98,18 @@ class DDQNAgent():
     
     def get_action(self, state):
         sample = random.random()
-        epsilon_threshold = self.final_epsilon + (self.starting_epsilon - self.final_epsilon) * math.exp(-1. * self.steps_done / self.epsilon_decay)
+        epsilon_threshold = self.calculate_epsilon()
         self.steps_done += 1
         if sample < epsilon_threshold:
-            return torch.tensor(self.env.action_space.sample(), device=self.device, dtype=torch.long)
+            mask_dir = self.env.env.get_mask_direction(probs = True)
+            ps = mask_dir / mask_dir.sum()
+            return torch.tensor(np.random.choice(len(ps),p = ps), device=self.device, dtype=torch.long)
         else:
             with torch.no_grad():
-                return F.softmax(self.source_net(state)).max(1)[1].view(1, 1)
+                return self.source_net(state).max(1)[1].view(1, 1)
+        
+    def calculate_epsilon(self):
+        return self.final_epsilon + (self.starting_epsilon - self.final_epsilon) * math.exp(-1. * self.steps_done / self.epsilon_decay) 
 
     def optimize_model(self):
         if len(self.memory) < self.batch_size:
@@ -162,8 +165,7 @@ class DDQNAgent():
         self.target_net.load_state_dict(self.source_net.state_dict()) 
     
     def update_steps_done(self):
-        self.steps_done = self.steps_done // 4
-        self.discount_factor = 0.7
+        self.steps_done = 0
     
     def update_hyperparameter(self,is_better:bool):
         if is_better:

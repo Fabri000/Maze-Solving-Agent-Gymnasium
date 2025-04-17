@@ -9,7 +9,7 @@ from gymnasium import spaces
 from gymnasium_env.envs.base_maze_env import BaseVariableSizeEnv
 from lib.a_star_algos.a_star import astar_limited_partial
 from lib.maze_difficulty_evaluation.metrics_calculator import MetricsCalculator
-from lib.maze_handler import extract_submaze, get_mask_tensor
+from lib.maze_handler import extract_submaze, get_direction_mask, get_mask_tensor
 from lib.maze_view import SimpleMazeView
 
 
@@ -46,6 +46,17 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
             tuple: the maximum shape of
         """
         return self.max_shape
+    
+    def get_mask_direction(self,probs = False):
+        """
+        Get the mask for the direction that the agent can move."""
+        mask = get_direction_mask(self.maze_map,self._agent_location)
+        if probs and len(self.visited_cell)>1:
+            mask = mask.astype(np.float32)
+            previous = tuple(self.visited_cell[-2]-self._agent_location ) 
+            dir = [(1,0),(-1,0), (0,1), (0,-1)].index(tuple(previous))
+            mask[dir] = 0.25
+        return mask
     
     def set_max_steps(self):
         """
@@ -123,10 +134,11 @@ class SimpleVariableMazeEnv(BaseVariableSizeEnv):
 
     def update_new_maze(self, shape:tuple[int,int]=None):
         if shape is None:
-            shape = random.sample([(a,a) for a in range(SimpleVariableMazeEnv.START_SHAPE[0],self.max_shape[0],2)],1)[0]
+            self.maze_shape = random.sample([(a,a) for a in range(SimpleVariableMazeEnv.START_SHAPE[0],self.max_shape[0],2)],1)[0]
+        else:
+            self.maze_shape = shape
         
-        self._start_pos, goal_pos, self.maze_map =  self.generate_maze(shape)
-        self.maze_shape = (len(self.maze_map),len(self.maze_map[0]))
+        self._start_pos, goal_pos, self.maze_map =  self.generate_maze(self.maze_shape)
         self._target_location = np.array(goal_pos, dtype=np.int32)
         
         self.set_max_steps()
@@ -148,20 +160,20 @@ class SimpleEnrichVariableMazeEnv(SimpleVariableMazeEnv):
 
         self.observation_space = spaces.Dict(
             {
-                "agent": gym.spaces.Box(0,self.max_shape[0]*self.max_shape[1],shape=(2,),dtype=int),
-                "target": gym.spaces.Box(0,self.max_shape[0]*self.max_shape[1],shape=(2,),dtype=int),
+                "agent": gym.spaces.Box(0,1,shape=(2,),dtype=int),
+                "target": gym.spaces.Box(0,1,dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
-                "window": gym.spaces.Box(-1,1,shape=(4,SimpleEnrichVariableMazeEnv.WINDOW_DIM,SimpleEnrichVariableMazeEnv.WINDOW_DIM),dtype=float),
+                "window": gym.spaces.Box(-1,1,shape=(3,SimpleEnrichVariableMazeEnv.WINDOW_DIM,SimpleEnrichVariableMazeEnv.WINDOW_DIM),dtype=float),
             }
         )
 
     def _get_obs(self):
-        sub_maze, player_position = extract_submaze(self.maze_map,self._agent_location,SimpleEnrichVariableMazeEnv.WINDOW_DIM)
+        sub_maze, visited, player_position = extract_submaze(self.maze_map,self.non_visited,self._agent_location,SimpleEnrichVariableMazeEnv.WINDOW_DIM)
 
-        mask = get_mask_tensor(sub_maze,player_position)
+        mask = get_mask_tensor(sub_maze,visited,player_position)
 
-        return {"agent": self._agent_location,
-                "target":self._target_location,
+        return {"agent": self._agent_location / self.maze_shape,
+                "target": self._target_location / self.maze_shape,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
                 "window": mask
         }

@@ -15,9 +15,10 @@ from lib.logger_inizializer import init_logger
 
 maze_size = (27,27)
 
-n_episodes = 150
-lr = 1e-3
+n_episodes = 200
+lr = 1e-2
 gamma = 0.99
+eta = 1e-3
 
 device = torch_directml.device()
 
@@ -29,6 +30,7 @@ agent = RFAgent(
     env=env,
     lr=lr,
     gamma= gamma,
+    eta=eta,
     device= device
 )
 
@@ -41,3 +43,8 @@ logger.debug(f"Hyperparameter of training: learning rate {lr} | gamma {gamma}")
 trainer = ValueBasedTrainer(env,agent,logger,device)
 
 trainer.train(n_episodes)
+
+logger.info("Checking if the agent remember how to solve maze already seen")
+trainer.test(len(env.env.mazes),new = False)
+logger.info(f'Start testing on new mazes')
+trainer.test(75, new = True)

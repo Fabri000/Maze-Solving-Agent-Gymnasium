@@ -17,12 +17,10 @@ class CAE(nn.Module):
         self.encoder =nn.Sequential(
             Conv2d(in_channels,h_channels,kernel_size=3,stride=1,padding=1),
             nn.LeakyReLU(),
-            nn.Dropout(p=0.2),
             nn.MaxPool2d(2,2),
         )
 
         self.decoder = nn.Sequential(
-
             nn.ConvTranspose2d(h_channels, in_channels, kernel_size=2, stride=2, output_padding=1),  # upsample
             nn.Sigmoid()
         )

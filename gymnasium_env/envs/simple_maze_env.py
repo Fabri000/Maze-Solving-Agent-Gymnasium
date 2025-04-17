@@ -7,7 +7,7 @@ import torch.nn as nn
 from gymnasium_env.envs.base_maze_env import BaseConstantSizeEnv
 from lib.a_star_algos.a_star import astar_limited_partial
 from lib.maze_difficulty_evaluation.metrics_calculator import MetricsCalculator
-from lib.maze_handler import extract_submaze, get_mask_tensor
+from lib.maze_handler import extract_submaze, get_mask_tensor,get_direction_mask
 from lib.maze_view import SimpleMazeView
 
 
@@ -37,6 +37,17 @@ class SimpleMazeEnv(BaseConstantSizeEnv):
         
     def next_cell(self, agent_pos, dir):
         return tuple(agent_pos + SimpleMazeEnv.ACTIONS[dir])
+    
+    def get_mask_direction(self,probs = False):
+        """
+        Get the mask for the direction that the agent can move."""
+        mask = get_direction_mask(self.maze_map,self._agent_location)
+        if probs and len(self.visited_cell)>1:
+            mask = mask.astype(np.float32)
+            previous = tuple(self.visited_cell[-2]-self._agent_location ) 
+            dir = [(1,0),(-1,0), (0,1), (0,-1)].index(tuple(previous))
+            mask[dir] = 0.25
+        return mask
 
     def set_max_steps(self):
         """
@@ -130,19 +141,19 @@ class SimpleEnrichMazeEnv(SimpleMazeEnv):
 
         self.observation_space = spaces.Dict(
             {
-                "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
-                "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
+                "agent": gym.spaces.Box(0,1,shape=(2,),dtype=int),
+                "target": gym.spaces.Box(0,1,shape=(2,),dtype=int),
                 "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
                 "window": gym.spaces.Box(-1,1,shape=(4,SimpleEnrichMazeEnv.WINDOW_DIM,SimpleEnrichMazeEnv.WINDOW_DIM),dtype=float)
             }
         )
 
     def _get_obs(self):
-        sub_maze,position = extract_submaze(self.maze_map,self._agent_location,SimpleEnrichMazeEnv.WINDOW_DIM)
-        mask = get_mask_tensor(sub_maze,position)
-        
-        return {"agent": self._agent_location,
-                "target": self._target_location,
+        sub_maze, non_visited ,position = extract_submaze(self.maze_map,self.non_visited,self._agent_location,SimpleEnrichMazeEnv.WINDOW_DIM)
+        mask = get_mask_tensor(sub_maze,non_visited,position)
+
+        return {"agent": self._agent_location / self.maze_shape,
+                "target": self._target_location / self.maze_shape,
                 "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
-                "window": mask}
+                "window": mask}   
     

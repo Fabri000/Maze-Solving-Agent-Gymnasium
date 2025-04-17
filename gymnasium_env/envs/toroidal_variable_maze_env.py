@@ -8,7 +8,7 @@ from gymnasium import spaces
 from gymnasium_env.envs.base_maze_env import BaseVariableSizeEnv
 from lib.maze_difficulty_evaluation.metrics_calculator import MetricsCalculator
 from lib.maze_generation import gen_maze_no_border
-from lib.maze_handler import extract_submaze_toroid, get_mask_tensor
+from lib.maze_handler import extract_submaze_toroid, get_mask_tensor, get_toroidal_direction_mask
 from lib.maze_view import ToroidalMazeView
 from lib.a_star_algos.a_star_tor import astar_limited_partial
 
@@ -58,6 +58,20 @@ class ToroidalVariableMazeEnv(BaseVariableSizeEnv):
                 difficulty = tmp_difficulty
         
         return start_pos,goal_pos,maze_map
+    
+    def get_mask_direction(self,probs = False):
+        """
+        Get the mask for the direction that the agent can move."""
+        mask = get_toroidal_direction_mask(self.maze_map,self._agent_location)
+        if probs and len(self.visited_cell)>1:
+            mask = mask.astype(np.float32)
+            prev = self.visited_cell[-2]
+            dy = (prev[0] - self._agent_location[0]) % self.maze_shape[0]  
+            dx = (prev[1] - self._agent_location[1]) % self.maze_shape[1]  
+            dir_to_previous = (dx if dx <= self.maze_shape[1]  // 2 else dx - self.maze_shape[1] ,dy if dy <= self.maze_shape[0]  // 2 else dy - self.maze_shape[0] )
+            dir = [(1,0),(-1,0), (0,1), (0,-1)].index(tuple(dir_to_previous))
+            mask[dir] = 0.25
+        return mask
 
     def set_max_steps(self):
         """
@@ -137,7 +151,12 @@ class ToroidalVariableMazeEnv(BaseVariableSizeEnv):
         self.maze_view.update_maze(self.maze_map,self._start_pos,tuple(self._target_location),self.maze_shape)
         self.reset()
 
-    def update_new_maze(self):
+    def update_new_maze(self,shape:tuple[int,int]=None):
+        if shape is None:
+            self.maze_shape = random.sample([(a,a) for a in range(ToroidalVariableMazeEnv.START_SHAPE[0],self.max_shape[0],2)],1)[0]
+        else:
+            self.maze_shape = shape
+
         self._start_pos, goal_pos, self.maze_map = self.generate_maze(self.maze_shape)
         self._target_location = np.array(goal_pos, dtype=np.int32)
         
@@ -157,18 +176,19 @@ class ToroidalEnrichVariableMazeEnv(ToroidalVariableMazeEnv):
 
             self.observation_space = spaces.Dict(
                 {
-                    "agent": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
-                    "target": gym.spaces.Box(0,self.maze_shape[0]*self.maze_shape[1],shape=(2,),dtype=int),
+                    "agent": gym.spaces.Box(0,1,shape=(2,),dtype=int),
+                    "target": gym.spaces.Box(0,1,shape=(2,),dtype=int),
                     "best dir": gym.spaces.Box(-1,1,shape=(2,),dtype=int),
                     "window": gym.spaces.Box(-1,1,shape=(3,15,15),dtype=float)
                 }
             )
-        def _get_obs(self):
-            sub_maze,position = extract_submaze_toroid(self.maze_map,self._agent_location,15)
-            mask = get_mask_tensor(sub_maze,position)
 
-            return {"agent": self._agent_location, 
-                    "target": self._target_location,
+        def _get_obs(self):
+            sub_maze,non_visited,position = extract_submaze_toroid(self.maze_map,self.non_visited,self._agent_location,15)
+            mask = get_mask_tensor(sub_maze,non_visited,position)
+
+            return {"agent": self._agent_location / self.maze_shape,
+                    "target": self._target_location / self.maze_shape,
                     "best dir": self._agent_location - self._find_best_next_cell(self._agent_location),
                     "window": mask
             }

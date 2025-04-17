@@ -17,14 +17,14 @@ from agents.ddqn_agent import DDQNAgent
 from lib.trainers.off_policy_trainer import NeuralOffPolicyTrainer
 from lib.logger_inizializer import init_logger
 
-maze_shape = (21,21)
+maze_shape = (41,41)
 device = torch_directml.device()
 
-n_episodes = 350
+n_episodes = 125
 learning_rate=1e-3
 starting_epsilon=0.95
-final_epsilon=0.05
-epsilon_decay= maze_shape[0]*maze_shape[1] // 2
+final_epsilon=0.1
+epsilon_decay= ((maze_shape[0]-1)*(maze_shape[1]-1) // 2)*5
 discount_factor=0.7
 eta = 1e-2
 batch_size=128
@@ -32,7 +32,7 @@ batch_size=128
 env = SimpleEnrichMazeEnv(maze_shape)
 env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
-agent = DDQNAgent(env,learning_rate=learning_rate,starting_epsilon=starting_epsilon,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,eta=eta,batch_size=batch_size,memory_size=100000,target_update_frequency=2,device=device)
+agent = DDQNAgent(env,learning_rate=learning_rate,starting_epsilon=starting_epsilon,final_epsilon=final_epsilon,epsilon_decay=epsilon_decay,discount_factor=discount_factor,eta=eta,batch_size=batch_size,memory_size=20000,target_update_frequency=1,device=device)
 
 log_dir = "logs/ddqn_logs"
 logger = init_logger("Agent_log",log_dir)
@@ -48,7 +48,7 @@ trainer.train(n_episodes)
 logger.info("Checking if the agent remember how to solve maze already seen")
 trainer.test(len(env.env.mazes),new = False)
 logger.info(f'Start testing on new mazes')
-trainer.test(50, new = True)
+trainer.test(75, new = True)
 logger.info(f'Test on different type of algos')
 for algo in ["r-prim","prim&kill","dfs"]:
     trainer.infer(15,algo)

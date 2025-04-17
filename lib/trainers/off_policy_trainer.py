@@ -67,7 +67,7 @@ class OffPolicyTrainer():
                 self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}| generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
                 count__episode = 0
                 num_win += 1
-                self.change_algorithm(num_win)
+                #self.change_algorithm(num_win)
                 self.env.env.update_maze()
                 if self.is_maze_variable:
                     if self.env.env.get_maze_shape() >= self.env.env.get_max_shape():
@@ -86,8 +86,8 @@ class OffPolicyTrainer():
         num = num_mazes
         for _ in tqdm(range(num_mazes)):
             if new:
-                algo = random.choice(OffPolicyTrainer.ALGOS)
-                self.env.env.set_algorithm(algo)
+                #algo = random.choice(OffPolicyTrainer.ALGOS)
+                #self.env.env.set_algorithm(algo)
                 self.env.env.update_new_maze()
             else:
                 self.env.env.update_visited_maze(remove=True)
@@ -145,7 +145,7 @@ class NeuralOffPolicyTrainer():
         cum_rew = 0
         prev_cum_rew=-1e6
         maze_size = None
-        count__episode = 0
+        count_episode = 0
         num_win = 0
         num_try = 0
 
@@ -157,7 +157,7 @@ class NeuralOffPolicyTrainer():
             total_loss = 0
             num_step = 0
             win = False
-            count__episode  += 1
+            count_episode  += 1
             num_try +=1
 
             while not done:
@@ -166,7 +166,7 @@ class NeuralOffPolicyTrainer():
                 next_obs, reward, truncated, terminated, _ = self.env.step(action.item())
                 cum_rew +=reward
                 
-                next_state = (torch.tensor(np.concatenate([next_obs[k] for k in next_obs if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), obs['window'].to(self.device).unsqueeze(0))
+                next_state = (torch.tensor(np.concatenate([next_obs[k] for k in next_obs if k!='window'], axis=0), dtype=torch.float32, device=self.device).unsqueeze(0), next_obs['window'].to(self.device).unsqueeze(0))
 
                 self.agent.memorize(state,action,reward,next_state)
 
@@ -179,24 +179,25 @@ class NeuralOffPolicyTrainer():
 
                 if loss:
                     total_loss +=loss
-
+                
             result = "Win" if win else "Lost"
 
             if self.is_maze_variable:
-                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size}| epsilon threshold {self.agent.calculate_epsilon()}')
             else:
-                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | ')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | epsilon threshold {self.agent.calculate_epsilon()} ')
 
             if win:
                 num_win+=1
+                self.agent.steps_done = 0
                 c_e = None
                 if isinstance(self.env.env, ToroidalVariableMazeEnv) or isinstance(self.env.env, ToroidalMazeEnv):
                     maze =  np.pad(self.env.env.maze_map, pad_width=1, mode='constant', constant_values=0).tolist()
                     c_e = ComplexityEvaluation(maze,(self.env.env._start_pos[0]+1,self.env.env._start_pos[1]+1),tuple(self.env.env._target_location + 1))
                 else:
                     c_e = ComplexityEvaluation(self.env.env.maze_map,self.env.env._start_pos,tuple(self.env.env._target_location))
-                self.logger.debug(f'Episode to learn how to reach the goal {count__episode} | maze of shape {maze_size}| generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
-                count__episode = 0
+                self.logger.debug(f'Episode to learn how to reach the goal {count_episode} | maze of shape {maze_size}| generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
+                count_episode = 0
                 self.change_algorithm(num_win)
                 self.env.env.update_maze()
                 if self.is_maze_variable:
@@ -212,15 +213,15 @@ class NeuralOffPolicyTrainer():
                     else:
                         self.logger.debug(f'Learning new maze| maze of shape {maze_size} | generated using {self.env.env.get_algorithm()} | maze difficulty {c_e.difficulty_of_maze()}')
 
-            increment = cum_rew > prev_cum_rew
-            self.agent.update_hyperparameter(increment)
+            self.agent.update_hyperparameter(cum_rew > prev_cum_rew)
             prev_cum_rew = cum_rew
             cum_rew = 0
             self.agent.scheduler_step()
 
             if self.agent.has_to_update(episode):
                 self.agent.update_target()
-            print("discount factor",self.agent.discount_factor," steps done",self.agent.steps_done)
+
+        self.env.close()
         self.logger.info(f'End of training')
 
 
@@ -267,7 +268,8 @@ class NeuralOffPolicyTrainer():
         self.env.env.set_algorithm(algo)
         
         for _ in range(num_mazes):
-            self.env.env.update_new_maze(shape)   
+            if shape:
+                self.env.env.update_new_maze(shape)
             
             obs, _ = self.env.reset()
             done = False
@@ -299,10 +301,12 @@ class NeuralOffPolicyTrainer():
 
     def change_algorithm(self, num_win:int ):
         if num_win == 10:
-            self.agent.update_steps_done()
+            self.agent.steps_done = 0
+            self.agent.epsilon_decay = self.agent.epsilon_decay * 4
             self.env.env.set_algorithm( NeuralOffPolicyTrainer.ALGOS[2])
         elif num_win == 5:
-            self.agent.update_steps_done()
+            self.agent.epsilon_decay = self.agent.epsilon_decay * 3
+            self.agent.steps_done = 0
             self.env.env.set_algorithm(NeuralOffPolicyTrainer.ALGOS[1])
 
         

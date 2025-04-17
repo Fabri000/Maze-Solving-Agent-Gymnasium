@@ -7,7 +7,6 @@ from gymnasium import spaces
 from lib.maze_difficulty_evaluation.maze_complexity_evaluation import ComplexityEvaluation
 from lib.maze_generation import gen_maze
 
-
 class BaseMazeEnv(gym.Env):
     """
     A base class representing an environment for a maze game.
@@ -35,8 +34,12 @@ class BaseMazeEnv(gym.Env):
         """
 
         self.maze_map = maze_map
-
+        
         self.maze_shape = maze_shape
+
+        self.non_visited = (np.array(self.maze_map) !=0).astype(np.int32).tolist()
+        self.non_visited[start_pos[0]][start_pos[1]] = 0
+
         self._start_pos = start_pos
 
         self._agent_location = np.array(self._start_pos, dtype=np.int32)
@@ -60,11 +63,17 @@ class BaseMazeEnv(gym.Env):
     def get_algorithm(self):
         return BaseMazeEnv.ALGORITHM
     
+
+    def get_mask_direction(self,probs = False):
+        """
+        Get the mask for the direction that the agent can move."""
+        return NotImplementedError("Subclasses must implement get_mask_direction")
+    
     def set_max_steps(self):
         """
         Set the maximum steps that the agent can take in the episode
         """
-        return NotImplementedError("Subclasses must implement next_cell")
+        return NotImplementedError("Subclasses must implement set_max_steps")
     
     def generate_maze(self,maze_shape:tuple[int,int]):
         """
@@ -103,6 +112,7 @@ class BaseMazeEnv(gym.Env):
         """
         return self.maze_shape
     
+    
     def _get_obs(self):
         """
         Get the observation of the environment.
@@ -134,6 +144,10 @@ class BaseMazeEnv(gym.Env):
         """
 
         self._agent_location = np.array(self._start_pos,dtype=np.int32)
+        start_pos = tuple(self._agent_location)
+        self.non_visited = (np.array(self.maze_map) !=0).astype(np.int32).tolist()
+        self.non_visited[start_pos[0]][start_pos[1]] = 0
+
         self.maze_view._reset_agent()
 
         observation = self._get_obs()
@@ -167,33 +181,32 @@ class BaseMazeEnv(gym.Env):
             self.consecutive_invalid_moves = 0
 
             if current_cell not in self.visited_cell:
+                self.non_visited[current_cell[0]][current_cell[1]] = 0
                 if np.array_equal(self._agent_location, self._target_location):
                     reward = 1
                     terminated = True
                 else:
                     new_dist = len(self.find_path(current_cell))
                     old_dist = len(self.find_path(tuple(prev_pos)))
+                    
                     reward = (old_dist - new_dist) * 0.5 - 0.05
             else:
-                reward -= 1 - math.exp(- 0.15 * (self.visited_cell.count(current_cell)))
+                reward -= 1 - math.exp(- 0.2 * (self.visited_cell.count(current_cell)))
 
             self.visited_cell.append(current_cell)
+
         else:
             self.consecutive_invalid_moves += 1
-            reward -= 1 - math.exp(- 0.1 * (self.consecutive_invalid_moves))
+            reward -= 1 - math.exp(- 0.5 * (self.consecutive_invalid_moves))
 
         observation = self._get_obs()
         info = self._get_info()
-        
-        self.cum_rew += reward
         
         self.steps_taken+=1
         if self.steps_taken > self.max_steps_taken:
             truncated = True
 
-        if truncated or terminated:
-            self.reset()
-
+        self.cum_rew += reward
         return observation, reward, truncated, terminated, info
 
     def render(self,mode="human",close=False):
@@ -207,6 +220,7 @@ class BaseMazeEnv(gym.Env):
 
         return self.maze_view.update(mode)
     
+
     def _find_best_next_cell(self, agent_pos):
         """
         Find the best next cell for the agent, considering path length and tie-breaking heuristics.

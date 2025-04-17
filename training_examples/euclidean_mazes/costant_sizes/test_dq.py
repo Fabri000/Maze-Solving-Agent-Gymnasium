@@ -21,8 +21,8 @@ n_episodes = 150
 lr = 1e-3
 eps_init = 0.95
 eps_end = 0.05
-eps_dec = n_episodes * 4
-gamma = 0.5
+eps_dec = ((maze_size[0]-1)*(maze_size[1]-1) // 2)
+gamma = 0.7
 eta = 1e-2
 
 env = SimpleMazeEnv(maze_size)
