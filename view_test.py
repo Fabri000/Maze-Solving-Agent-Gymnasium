@@ -27,7 +27,7 @@ maze_shape = (13,13)
 goal_pos = goal_pos = [(r, c) for r in range(maze_shape[0]) for c in range(maze_shape[1]) if maze[r][c] == 2][-1]"""
 
 
-start_pos,goal_pos,maze = gen_maze((21,21),"dfs")
+start_pos,goal_pos,maze = gen_maze((25,25),"r-prim")
 
 
 

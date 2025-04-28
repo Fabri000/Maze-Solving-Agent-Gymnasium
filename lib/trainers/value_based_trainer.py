@@ -23,7 +23,6 @@ class ValueBasedTrainer():
         self.is_maze_variable = isinstance(self.env.env, SimpleVariableMazeEnv) or isinstance(self.env.env, ToroidalVariableMazeEnv)
 
     def train(self,n_episodes:int):
-        prev_cum_reward = -1e6
         num_win=0
         count_episode = 0
         
@@ -53,13 +52,10 @@ class ValueBasedTrainer():
                 rewards.append(reward)
 
             returns = self.agent.get_returns(rewards)
-            
-            #self.agent.update_hyperparameter(sum(rewards) > prev_cum_reward)
-            prev_cum_reward = sum(rewards)
 
             result = "Win" if win else "Lost"
             if self.is_maze_variable:
-                self.logger.info(f'Episode {episode}: cumulative reward {round(sum(rewards),2)} | {result} | maze of shape {maze_size}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(sum(rewards),2)} | {result} | maze of shape {self.env.maze_shape}')
             else:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(sum(rewards),2)} | {result} | gamma {self.agent.gamma}')
 
@@ -96,7 +92,7 @@ class ValueBasedTrainer():
         self.logger.info(f'End of training')
 
 
-    def test(self,num_mazes:int,new:bool): #!!!
+    def test(self,num_mazes:int,new:bool):
         self.logger.info(f'Start of Testing')
         win = 0
         for _ in range(num_mazes):

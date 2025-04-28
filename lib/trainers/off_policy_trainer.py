@@ -183,7 +183,7 @@ class NeuralOffPolicyTrainer():
             result = "Win" if win else "Lost"
 
             if self.is_maze_variable:
-                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {maze_size}| epsilon threshold {self.agent.calculate_epsilon()}')
+                self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | maze of shape {self.env.maze_shape}| epsilon threshold {self.agent.calculate_epsilon()}')
             else:
                 self.logger.info(f'Episode {episode}: cumulative reward {round(cum_rew,2)} | {result} | epsilon threshold {self.agent.calculate_epsilon()} ')
 
@@ -251,7 +251,7 @@ class NeuralOffPolicyTrainer():
                     win += 1
                     done = True
                 else:
-                    done = lost= truncated
+                    done = lost = truncated
                 obs = next_obs
 
             result = "Lost" if lost else "Win"

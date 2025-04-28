@@ -30,7 +30,6 @@ class DQN(nn.Module):
             MaxPool2d(2,2)
         )
 
-        
         input_dim = self.get_conv_size(DQN.WINDOW_SIZE)+n_observations
 
         self.fc =nn.Sequential(

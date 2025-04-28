@@ -197,7 +197,7 @@ class BaseMazeEnv(gym.Env):
 
         else:
             self.consecutive_invalid_moves += 1
-            reward -= 1 - math.exp(- 0.5 * (self.consecutive_invalid_moves))
+            reward -= 1 - math.exp(- 0.15 * (self.consecutive_invalid_moves))
 
         observation = self._get_obs()
         info = self._get_info()
@@ -205,7 +205,7 @@ class BaseMazeEnv(gym.Env):
         self.steps_taken+=1
         if self.steps_taken > self.max_steps_taken:
             truncated = True
-
+            reward = -1
         self.cum_rew += reward
         return observation, reward, truncated, terminated, info
 

@@ -49,10 +49,9 @@ class PolicyNetwork(nn.Module):
         return int(np.prod(out_conv.size()))
 
 class RFAgent():
-    def __init__(self,env,lr:float,gamma:float,eta:float,device):
+    def __init__(self,env,lr:float,gamma:float,device):
         self.lr = lr
         self.gamma = gamma
-        self.eta = eta
 
         self.env = env
         self.device = device
@@ -63,20 +62,21 @@ class RFAgent():
         n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))
 
         self.policy_net = PolicyNetwork(3,n_observations,n_actions,32).to(device)
+        self.policy_net.train()
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(),lr)
-        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=100,eta_min=1e-5)
+        self.lr_scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=200,eta_min=1e-5)
 
     def get_probs(self,state):
         return self.policy_net(state)
     
-    def select_action(self, state):
+    def select_action(self, state,temperature= 2):
         state = (state[0].to(self.device), state[1].to(self.device))
 
         # Get logits with gradient tracking
         logits = self.policy_net(state)
 
-        probs = F.softmax(logits,dim=1)
+        probs = F.softmax(logits / temperature, dim=-1)
 
         action = torch.multinomial(probs, num_samples=1)
 
@@ -108,9 +108,14 @@ class RFAgent():
         # Baseline: media dei ritorni
         baseline = returns.mean()
         advantages = returns - baseline
+        policy_loss = (-probs * advantages.detach()).sum()
 
-        # Calcola la loss con la baseline
-        loss = -(probs * advantages.detach()).sum()
+        # Calcola la loss con la baseline 
+        # 
+        entropy = -(probabilities * probabilities.exp()).sum(dim=1).mean()
+
+        # Combine
+        loss = policy_loss - 0.01 * entropy
         
         # Manually zero and update gradients
         self.optimizer.zero_grad()
@@ -119,12 +124,6 @@ class RFAgent():
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 1.0)
         self.optimizer.step()
-    
-    def update_hyperparameter(self,is_better:bool):
-        if is_better:
-            self.gamma = self.gamma + self.eta
-        else:
-            self.gamma = self.gamma - self.eta
     
     def scheduler_step(self):
         self.lr_scheduler.step()

@@ -84,7 +84,7 @@ class DQNAgent():
         self.target_update_frequency = target_update_frequency
         self.eta = eta
 
-        n_actions = env.action_space.n
+        n_actions = self.env.action_space.n
 
         observation, _ = env.reset()
         n_observations = len(np.concatenate([observation[k] for k in observation if k != "window"]))

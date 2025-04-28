@@ -14,7 +14,7 @@ from lib.maze_view import SimpleMazeView
 
 
 class SimpleVariableMazeEnv(BaseVariableSizeEnv):
-    START_SHAPE = (29,29)
+    START_SHAPE = (15,15)
 
     def __init__(self,max_shape:tuple[int,int],render_mode:str="human"):
         """
