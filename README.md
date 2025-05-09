@@ -28,12 +28,13 @@ Sfuttando alcune metriche sul labirinto per calcolare la difficoltà si ottengon
 
 | **Algorithm**  | **MD**  | **Max D** | **MC**  | **ML**  | **MDE** | **MDs** |
 |-----------------|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
-| **DFS**         | 106.41   | 152.22    | 12.24    | 0.47     | 0.05     | 0.03     |
-| **R-Prim**      | 71.90    | 103.43    | 8.43     | 0.04     | 1.34     | 0.33     |
-| **Prim&kill**   | 99.08    | 157.15    | 10.16    | 0.14     | 0.14     | 0.07     |
+| **R-Prim**      | 71.90 | 103.43 | 8.43 | 0.04 | 1.34 | 0.33 |
+| **Prim&kill**   | 99.08 | **157.15** | 10.16 | 0.14 | 0.14 | 0.07 |
+| **DFS**         | **106.41** | 152.22 | **12.24** | **0.47** | **0.05** | **0.03** |
 
 
-
+Da questi risultati si possono osservare che, mediamente, i labirinti generati presentano delle strutture caratteristiche che si differenziano cambiando algoritmo di generazione.
+Per questo motivo si sono provati ad utilizzare insiemi di labirinti in cui essi sono stati generati usando un solo algoritmo o molteplici.
 
 ## Algoritmi di learning Testati
 I principali algoritmi di RL usati sono tutti afferenti alla tipologia Value Based quali:
@@ -43,3 +44,16 @@ I principali algoritmi di RL usati sono tutti afferenti alla tipologia Value Bas
 * Double Deep Q network
 
 ## Esperimenti e risultati
+Gli esperimenti sono stati principalmente effettuati su tre livelli di robustezza relativi all'insieme di labirinti usati:
+* Singolo labirinto
+* Labirinti di dimensione costante
+* Labirinti di dimensione variabile
+Per gli ultimi due esperimenti si è inoltre provato a sperimentare su insiemi di labirinti con topologia toroidale o euclidea generati usando o un solo algoritmo o molteplici.
+Nella tabella di seguito si riportano i risultati su un singolo labirinto
+
+| **Algoritmo**  | **Tempo**  | **Catastrophic Forget** | **MC**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 120s| No | 0% |
+| **Double Q-learning** |112s| No | 0% |
+| **DQN** | 1020s | No | 4% |
+| **DDQN** | 1620s | No | 14% |
