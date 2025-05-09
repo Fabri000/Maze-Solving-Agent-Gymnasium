@@ -48,8 +48,9 @@ Gli esperimenti sono stati principalmente effettuati su tre livelli di robustezz
 * Singolo labirinto
 * Labirinti di dimensione costante
 * Labirinti di dimensione variabile
+
 Per gli ultimi due esperimenti si è inoltre provato a sperimentare su insiemi di labirinti con topologia toroidale o euclidea generati usando o un solo algoritmo o molteplici.
-Nella tabella di seguito si riportano i risultati su un singolo labirinto
+Nella tabella di seguito si riportano i risultati su un singolo labirinto i quali sono abbastanza triviali.
 
 | **Algoritmo**  | **Tempo**  | **Catastrophic Forget** | **MC**  |
 |-----------------|:----------:|:----------:|:----------:|
@@ -57,3 +58,64 @@ Nella tabella di seguito si riportano i risultati su un singolo labirinto
 | **Double Q-learning** |112s| No | 0% |
 | **DQN** | 1020s | No | 4% |
 | **DDQN** | 1620s | No | 14% |
+
+Per questo motivo ci si è concentrati su gli altri due tipi di esperimenti, prima su insiemi di labirinti di dimensione costante generati usando l'algoritmo r-prim
+
+| **Algoritmo**  | **Tempo**  | **W/R labirinti esplorati** | **W/R nuovi labirinti**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 300s | 80.49% | 0% |
+| **Double Q-learning** |510s| 80% | 0% |
+| **DQN** | 600s | 98.67% | 96% |
+| **DDQN** | 1200s | 100% | 99.6% |
+
+e successivamente su insiemi di labirinti generati usando diversi algoritmi di costruzione
+
+| **Algoritmo**  | **Tempo**  | **W/R labirinti esplorati** | **W/R nuovi labirinti**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 840s| 70.83% | 0% |
+| **Double Q-learning** |400s| 22.5% | 0% |
+| **DQN** | 9600s | 18.18% | 13.33% |
+| **DDQN** | 12000s | 16.6% | 1.32% |
+
+Da questi primi risultati si osserva come DQN e DDQN, rispetto alle controparti tabellari, garantiscano migliori performanze in termini di generalizzazione a (quasi) parità di capacità di risolvere i labirinti già esplorati.
+In aggiunta a ciò si osserva che su insiemi di labirinti con strutture caratteristiche differenti si hanno tempi più lunghi di addestramento e performance più basse.\
+Successivamente si è sperimentato su labirinti di dimensione variabile prima generati usando l'algoritmo r-prim
+
+| **Algoritmo**  | **Tempo**  | **W/R labirinti esplorati** | **W/R nuovi labirinti**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 430s | 78.57% | 0% |
+| **Double Q-learning** | 360s | 71.43% | 0% |
+| **DQN** | 340s | 100% | 86.67% |
+| **DDQN** | 309s | 100% | 98.67% |
+
+e si è osservata una riduzione dei tempi di addestramento degli approcci neurali grazie all'introduzione di una regola di early stop sulla dimensione massima del labirinto raggiounta in fase di addestramento.
+Conseguentemente si è esperimentato su labirinti di dimensione variabile generati usando diversi approcci di costruzione
+
+| **Algoritmo**  | **Tempo**  | **W/R labirinti esplorati** | **W/R nuovi labirinti**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 600s| 85.71% | 0% |
+| **Double Q-learning** |586s| 36.36% | 0% |
+| **DQN** | 25000s | 33% | 0% |
+| **DDQN** | 40000s | 8.33% | 1.32% |
+
+e per cui so osserva lo stesso fenomeno visto nel caso precedente.
+Infine, per brevità si è sperimentato su labirinti toroidali di dimensione variabile o costante, ma generati tutti usando l'algoritmo r-prim.\
+Prima su insieme di labirinti toroidali di dimensione costante
+
+| **Algoritmo**  | **Tempo**  | **W/R labirinti esplorati** | **W/R nuovi labirinti**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 115s | 78.57% | 0% |
+| **Double Q-learning** | 180s | 58% | 0% |
+| **DQN** | 1020s | 93.33% | 1.3% |
+| **DDQN** | 780s | 81.22% | 16% |
+
+e successivamente su insieme di labirinti toroidali di dimensione variabile
+
+| **Algoritmo**  | **Tempo**  | **W/R labirinti esplorati** | **W/R nuovi labirinti**  |
+|-----------------|:----------:|:----------:|:----------:|
+| **Q-learning** | 110s | 71.43% | 0% |
+| **Double Q-learning** | 120s | 50% | 0% |
+| **DQN** | 1020s | 64.29% | 0% |
+| **DDQN** | 1320s | 81.2% | 1.42% |
+
+Da questi esperimenti si osserva come la perdita di aciclicità nei labirinti rappresenta un livello di sfida maggiore sia in termini di capacità di risoluzione di labirinti già esplorati, ma soprattutto in termini di generalizzazione a nuovi labirinti.
